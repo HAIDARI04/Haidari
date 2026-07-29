@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# Node.js
+node_modules/
+dist/
+.vite/
+
+# Environment variables and credentials
+.env
+.env.*
+!.env.example
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Experimental data and generated results
+data/
+raw-data/
+results/
+reports/
+
+# Editor and operating-system files
+.vscode/
+.DS_Store
+Thumbs.db
