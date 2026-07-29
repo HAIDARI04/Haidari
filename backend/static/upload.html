@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Materials Data Copilot - Import</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      color: #17212b;
+      background: #eef2f5;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 2rem 1rem 4rem; }
+    main { width: min(900px, 100%); margin: 0 auto; }
+    h1 { margin-bottom: .35rem; }
+    .subtitle { margin-top: 0; color: #526170; }
+    .panel {
+      margin-top: 1.5rem;
+      padding: 1.5rem;
+      border: 1px solid #d6dee5;
+      border-radius: 14px;
+      background: white;
+      box-shadow: 0 8px 28px rgba(25, 44, 63, .06);
+    }
+    .drop-zone {
+      padding: 2.25rem 1rem;
+      border: 2px dashed #8aa3b7;
+      border-radius: 10px;
+      text-align: center;
+      cursor: pointer;
+      background: #f8fafb;
+    }
+    .drop-zone.active { border-color: #087f5b; background: #edf9f4; }
+    .drop-zone strong { display: block; margin-bottom: .3rem; }
+    #file { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+      margin-top: 1.25rem;
+    }
+    label { display: grid; gap: .35rem; font-weight: 650; }
+    label span { color: #b42318; }
+    input, textarea {
+      width: 100%;
+      padding: .7rem .8rem;
+      border: 1px solid #aebbc6;
+      border-radius: 7px;
+      font: inherit;
+    }
+    textarea { min-height: 95px; resize: vertical; }
+    .wide { grid-column: 1 / -1; }
+    button {
+      margin-top: 1.25rem;
+      padding: .75rem 1.2rem;
+      border: 0;
+      border-radius: 7px;
+      color: white;
+      background: #087f5b;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button:disabled { opacity: .55; cursor: wait; }
+    #status { min-height: 1.5rem; margin: 1rem 0 0; white-space: pre-wrap; }
+    #status.error { color: #b42318; }
+    #status.success { color: #087f5b; }
+    table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+    th, td { padding: .65rem .45rem; border-bottom: 1px solid #e2e8ed; text-align: left; }
+    th { color: #526170; }
+    @media (max-width: 650px) {
+      .grid { grid-template-columns: 1fr; }
+      .wide { grid-column: auto; }
+      .optional-column { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Materials Data Copilot</h1>
+    <p class="subtitle">Import an immutable experimental file with traceable metadata.</p>
+
+    <section class="panel" aria-labelledby="import-heading">
+      <h2 id="import-heading">New import</h2>
+      <form id="upload-form">
+        <label class="drop-zone" id="drop-zone" for="file">
+          <strong id="file-label">Drop a file here or choose a file</strong>
+          <small>Maximum size: 100 MiB. Empty files are rejected.</small>
+        </label>
+        <input id="file" name="file" type="file">
+
+        <div class="grid">
+          <label>Technique <span>*</span><input name="technique" maxlength="100" required placeholder="Raman spectroscopy"></label>
+          <label>Sample ID <span>*</span><input name="sample_id" maxlength="100" required placeholder="SAMPLE-001"></label>
+          <label>Measurement date<input name="measurement_date" type="date"></label>
+          <label>Instrument<input name="instrument" maxlength="200" placeholder="Instrument and configuration"></label>
+          <label>Operator<input name="operator" maxlength="100"></label>
+          <label class="wide">Notes<textarea name="notes" maxlength="2000" placeholder="Conditions, preparation, or anomalies"></textarea></label>
+        </div>
+
+        <button id="submit-button" type="submit">Import file</button>
+        <p id="status" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="panel" aria-labelledby="recent-heading">
+      <h2 id="recent-heading">Recent imports</h2>
+      <table>
+        <thead><tr><th>File</th><th>Sample</th><th>Technique</th><th class="optional-column">Imported</th></tr></thead>
+        <tbody id="file-list"><tr><td colspan="4">Loading...</td></tr></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    const form = document.querySelector("#upload-form");
+    const input = document.querySelector("#file");
+    const dropZone = document.querySelector("#drop-zone");
+    const fileLabel = document.querySelector("#file-label");
+    const status = document.querySelector("#status");
+    const submitButton = document.querySelector("#submit-button");
+    const fileList = document.querySelector("#file-list");
+    let selectedFile = null;
+
+    function selectFile(file) {
+      selectedFile = file || null;
+      fileLabel.textContent = selectedFile
+        ? `${selectedFile.name} (${selectedFile.size.toLocaleString()} bytes)`
+        : "Drop a file here or choose a file";
+    }
+
+    input.addEventListener("change", () => selectFile(input.files[0]));
+    ["dragenter", "dragover"].forEach((eventName) => {
+      dropZone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        dropZone.classList.add("active");
+      });
+    });
+    ["dragleave", "drop"].forEach((eventName) => {
+      dropZone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        dropZone.classList.remove("active");
+      });
+    });
+    dropZone.addEventListener("drop", (event) => {
+      selectFile(event.dataTransfer.files[0]);
+    });
+
+    function showStatus(message, type = "") {
+      status.textContent = message;
+      status.className = type;
+    }
+
+    async function refreshFiles() {
+      try {
+        const response = await fetch("/files");
+        const files = await response.json();
+        fileList.replaceChildren();
+        if (!files.length) {
+          const row = fileList.insertRow();
+          const cell = row.insertCell();
+          cell.colSpan = 4;
+          cell.textContent = "No files imported yet.";
+          return;
+        }
+        files.slice(0, 10).forEach((file) => {
+          const row = fileList.insertRow();
+          [file.original_filename, file.sample_id || "-", file.technique || "-", new Date(file.imported_at).toLocaleString()]
+            .forEach((value, index) => {
+              const cell = row.insertCell();
+              cell.textContent = value;
+              if (index === 3) cell.className = "optional-column";
+            });
+        });
+      } catch (_error) {
+        fileList.innerHTML = "<tr><td colspan='4'>Could not load imports.</td></tr>";
+      }
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!selectedFile) {
+        showStatus("Choose a file before importing.", "error");
+        return;
+      }
+
+      const data = new FormData();
+      data.append("file", selectedFile, selectedFile.name);
+      ["technique", "sample_id", "measurement_date", "instrument", "operator", "notes"].forEach((name) => {
+        const value = form.elements[name].value.trim();
+        if (value) data.append(name, value);
+      });
+
+      submitButton.disabled = true;
+      showStatus("Importing...");
+      try {
+        const response = await fetch("/files/import", { method: "POST", body: data });
+        const result = await response.json();
+        if (!response.ok) {
+          const detail = result.detail;
+          throw new Error(detail?.message || "The import was rejected.");
+        }
+        showStatus(`Imported ${result.original_filename}\nSHA-256: ${result.sha256}`, "success");
+        form.reset();
+        selectFile(null);
+        await refreshFiles();
+      } catch (error) {
+        showStatus(error.message, "error");
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
+
+    refreshFiles();
+  </script>
+</body>
+</html>
