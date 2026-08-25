@@ -13,7 +13,24 @@
     }
     * { box-sizing: border-box; }
     body { margin: 0; padding: 2rem 1rem 4rem; }
-    main { width: min(900px, 100%); margin: 0 auto; }
+    main {
+      width: min(1400px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(230px, 300px) minmax(0, 1fr);
+      gap: 0 1.25rem;
+    }
+    main > h1, main > .subtitle { grid-column: 1 / -1; }
+    main > [aria-labelledby="import-heading"] { grid-column: 1 / -1; grid-row: 3; }
+    main > [aria-labelledby="recent-heading"] {
+      grid-column: 1;
+      grid-row: 4;
+      align-self: start;
+      position: static;
+      max-height: none;
+      overflow: visible;
+      min-width: 0;
+    }
     h1 { margin-bottom: .35rem; }
     .subtitle { margin-top: 0; color: #526170; }
     .panel {
@@ -34,7 +51,7 @@
     }
     .drop-zone.active { border-color: #087f5b; background: #edf9f4; }
     .drop-zone strong { display: block; margin-bottom: .3rem; }
-    #file { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    #file, #folder { position: absolute; width: 1px; height: 1px; opacity: 0; }
     .grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -67,10 +84,131 @@
     #status { min-height: 1.5rem; margin: 1rem 0 0; white-space: pre-wrap; }
     #status.error { color: #b42318; }
     #status.success { color: #087f5b; }
+    #remembered-folder { display: block; margin-top: .45rem; color: #526170; }
+    #remembered-folder[data-state="granted"] { color: #087f5b; }
+    #spectrum-panel {
+      grid-column: 2;
+      grid-row: 4;
+      margin: 1.5rem 0 0;
+      align-self: start;
+    }
+    #spectrum-plot {
+      width: 100%;
+      min-height: 330px;
+      border: 1px solid #d6dee5;
+      border-radius: 10px;
+      background: #fbfcfd;
+      touch-action: none;
+      cursor: crosshair;
+    }
+    #imported-image { display: block; max-width: 100%; max-height: 75vh; margin: .75rem auto; border: 1px solid #d6dee5; border-radius: 10px; object-fit: contain; background: #f8fafb; }
+    #imported-image[hidden] { display: none; }
+    #mapping-plot { display: block; width: 100%; max-height: 70vh; image-rendering: pixelated; border: 1px solid #d6dee5; border-radius: 10px; background: #101828; }
+    #mapping-plot[hidden] { display: none; }
+    .spectrum-toolbar { display: flex; flex-wrap: wrap; gap: .5rem; align-items: start; margin: .75rem 0; }
+    .spectrum-toolbar label { display: flex; align-items: center; gap: .35rem; font-size: .85rem; font-weight: 600; }
+    .spectrum-toolbar input[type="checkbox"] { width: auto; }
+    .spectrum-toolbar input[type="range"] { width: 90px; padding: 0; }
+    .spectrum-toolbar button { margin: 0; padding: .45rem .65rem; font-size: .82rem; background: #0b63a4; }
+    .spectrum-toolbar button.active { background: #087f5b; box-shadow: 0 0 0 2px #b7e4d3; }
+    .spectrum-control-group { position: relative; }
+    .spectrum-control-group > summary {
+      padding: .5rem .7rem;
+      border: 1px solid #aebbc6;
+      border-radius: 7px;
+      background: white;
+      color: #15303a;
+      font-weight: 700;
+      cursor: pointer;
+      list-style-position: inside;
+    }
+    .spectrum-control-content {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .6rem;
+      align-items: center;
+      margin-top: .35rem;
+      padding: .65rem;
+      border: 1px solid #d6dee5;
+      border-radius: 8px;
+      background: white;
+    }
+    .analysis-section { flex: 1 1 240px; align-self: flex-start; border: 1px solid #d6dee5; border-radius: 8px; background: #f8fafb; }
+    .analysis-section > summary { padding: .65rem; color: #15303a; font-size: .9rem; font-weight: 750; cursor: pointer; }
+    .analysis-section-fields { display: grid; gap: .5rem; padding: 0 .65rem .65rem; }
+    #fit-peak-selector { display: grid; gap: .3rem; max-height: 150px; overflow: auto; padding: .45rem; border: 1px solid #d6dee5; border-radius: 6px; }
+    #fit-peak-selector legend { font-size: .8rem; font-weight: 700; }
+    .peak-color-swatch { width: .75rem; height: .75rem; border-radius: 50%; flex: 0 0 auto; }
+    #spectrum-metadata { display: flex; flex-wrap: wrap; gap: .4rem 1rem; margin: .5rem 0; color: #526170; font-size: .85rem; }
+    #spectrum-tooltip { font-weight: 650; min-height: 1.2rem; color: #15303a; }
+    #raman-analysis { margin-top: 1rem; padding: 1rem; border: 1px solid #d6dee5; border-radius: 10px; background: #f8fafb; }
+    #raman-analysis table { background: white; }
+    .analysis-controls { display: flex; flex-wrap: wrap; gap: .6rem; align-items: end; }
+    .analysis-controls label { min-width: 220px; }
+    .analysis-controls button { margin: 0; }
+    .analysis-warning { color: #8a4b08; }
+    .modal-overlay { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.45); }
+    .modal-overlay[hidden] { display: none; }
+    .modal-card { width: min(620px, 94vw); max-height: 90vh; overflow: auto; padding: 1.25rem; border-radius: 12px; background: white; }
+    .modal-actions { display: flex; gap: .5rem; justify-content: flex-end; }
+    .import-history { display: grid; gap: .55rem; min-width: 0; max-width: 100%; }
+    .import-history button {
+      width: 100%;
+      margin: 0;
+      padding: .75rem;
+      border: 1px solid #d6dee5;
+      background: #f8fafb;
+      color: #17212b;
+      text-align: left;
+      font-weight: 500;
+    }
+    .import-history button:hover, .import-history button.active {
+      border-color: #087f5b;
+      background: #edf9f4;
+    }
+    .import-history strong, .import-history small { display: block; overflow-wrap: anywhere; }
+    .import-history small { margin-top: .25rem; color: #526170; }
+    .history-actions { display: flex; gap: .4rem; margin-top: .35rem; }
+    .history-actions button { width: 100%; min-width: 0; padding: .35rem .55rem; font-size: .78rem; background: #6b7280; color: white; white-space: normal; overflow-wrap: anywhere; }
+    .history-actions .delete-import { background: #b42318; }
+    .recent-controls { display: grid; gap: .5rem; margin-bottom: .75rem; }
+    .recent-controls input, .recent-controls select { width: 100%; min-width: 0; max-width: 100%; padding: .5rem .6rem; font-size: .85rem; }
+    .recent-filter-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: .4rem; }
+    .import-batch { min-width: 0; max-width: 100%; border: 1px solid #d6dee5; border-radius: 8px; background: #f8fafb; }
+    .import-batch > summary { min-width: 0; padding: .65rem; cursor: pointer; font-weight: 700; overflow-wrap: anywhere; }
+    .import-group-actions { display: flex; justify-content: flex-end; padding: 0 .55rem .4rem; }
+    .import-group-actions button { width: auto; max-width: 100%; margin: 0; padding: .3rem .5rem; background: #b42318; color: white; font-size: .76rem; white-space: normal; }
+    .import-batch-list { display: grid; min-width: 0; max-width: 100%; gap: .45rem; padding: 0 .55rem .55rem; }
+    .import-batch-list.scrollable {
+      max-height: calc(198px + .9rem + .55rem);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-gutter: stable;
+    }
+    .import-entry { position: relative; display: grid; min-width: 0; max-width: 100%; grid-template-columns: minmax(0, 1fr) auto; gap: .35rem; align-items: start; }
+    .import-entry > button { min-width: 0; height: 66px; overflow: hidden; }
+    .import-actions-menu > summary { padding: .45rem .6rem; cursor: pointer; font-weight: 800; list-style: none; }
+    .import-actions-menu > summary::-webkit-details-marker { display: none; }
+    .import-actions-menu[open] .history-actions { position: absolute; right: 0; z-index: 5; display: grid; width: min(170px, calc(100% - .5rem)); max-width: calc(100% - .5rem); padding: .35rem; border: 1px solid #d6dee5; border-radius: 7px; background: white; box-shadow: 0 6px 18px rgba(25,44,63,.15); }
+    .recent-pagination { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .5rem; min-width: 0; margin-top: .75rem; font-size: .82rem; }
+    .recent-pagination > div { display: flex; flex-wrap: wrap; gap: .25rem; max-width: 100%; }
+    .recent-pagination button { margin: 0; padding: .4rem .55rem; }
+    .folder-tree { margin: .65rem 0 0; padding-left: .35rem; }
+    .folder-tree details { margin: .25rem 0; }
+    .folder-tree summary { cursor: pointer; font-weight: 650; }
+    .folder-tree ul { margin: .25rem 0; padding-left: 1.35rem; }
+    .folder-tree li { margin: .25rem 0; }
+    .batch-metadata-note { margin: .65rem 0 0; padding: .55rem; border-radius: 7px; background: #edf6ff; color: #174a70; }
+    .import-queue { display: grid; gap: .35rem; margin-top: .75rem; }
+    .import-queue-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; padding: .45rem .55rem; border: 1px solid #d6dee5; border-radius: 7px; }
+    .import-queue-row [data-state="imported"] { color: #087f5b; }
+    .import-queue-row [data-state="failed"] { color: #b42318; }
     table { width: 100%; border-collapse: collapse; font-size: .92rem; }
     th, td { padding: .65rem .45rem; border-bottom: 1px solid #e2e8ed; text-align: left; }
     th { color: #526170; }
     @media (max-width: 650px) {
+      main { display: block; }
+      main > [aria-labelledby="recent-heading"] { position: static; max-height: none; }
       .grid { grid-template-columns: 1fr; }
       .wide { grid-column: auto; }
       .optional-column { display: none; }
@@ -84,54 +222,1741 @@
 
     <section class="panel" aria-labelledby="import-heading">
       <h2 id="import-heading">New import</h2>
+      <section id="spectrum-panel" class="panel" aria-labelledby="spectrum-heading">
+        <h3 id="spectrum-heading">File viewer</h3>
+        <p id="spectrum-message">Select an imported spectrum or image from the left panel.</p>
+        <div id="spectrum-metadata"></div>
+        <div class="spectrum-toolbar" id="spectrum-toolbar" hidden>
+          <details class="spectrum-control-group">
+            <summary>Navigation</summary>
+            <div class="spectrum-control-content">
+              <button id="box-zoom-mode" class="active" type="button" aria-pressed="true">Box zoom</button>
+              <button id="pan-spectrum-mode" type="button" aria-pressed="false">Pan X/Y</button>
+              <button id="reset-spectrum-view" type="button">Reset view</button>
+            </div>
+          </details>
+          <details class="spectrum-control-group">
+            <summary>Process &amp; analyze</summary>
+            <div class="spectrum-control-content">
+              <details class="analysis-section">
+                <summary id="artifacts-heading">Instrumental artifacts</summary>
+                <div class="analysis-section-fields">
+                  <label><input id="detect-cosmic-rays" type="checkbox"> Detect cosmic rays</label>
+                  <label><input id="remove-cosmic-rays" type="checkbox"> Subtract detected cosmic rays</label>
+                  <label><input id="subtract-rayleigh-line" type="checkbox"> Subtract near-zero Rayleigh leakage</label>
+                  <label>Rayleigh half-width (cm⁻¹)<input id="rayleigh-cutoff" type="number" min="1" max="100" step="1" value="15"></label>
+                  <label><input id="subtract-reference" type="checkbox"> Subtract reference spectrum</label>
+                  <label>Reference<select id="analysis-reference"><option value="">No calibration reference</option><option value="__sio2_si_model__">Target-adaptive SiO₂/Si model</option></select></label>
+                </div>
+              </details>
+              <details class="analysis-section">
+                <summary id="baseline-heading">Baseline detection &amp; subtraction</summary>
+                <div class="analysis-section-fields">
+                  <label>Detection method<select id="baseline-method"><option value="none">None</option><option value="linear">Linear</option><option value="polynomial">Polynomial</option><option value="als">Asymmetric LS</option><option value="rubberband">Rubber-band</option></select></label>
+                  <label><input id="show-detected-baseline" type="checkbox"> Show detected baseline</label>
+                  <label><input id="subtract-baseline" type="checkbox"> Subtract detected baseline</label>
+                </div>
+              </details>
+              <details class="analysis-section">
+                <summary id="peak-fitting-heading">Peak fitting &amp; parameters</summary>
+                <div class="analysis-section-fields">
+                  <label><input id="show-peaks" type="checkbox"> Detect peaks</label>
+                  <label>Sensitivity <input id="peak-sensitivity" type="range" min="1" max="20" value="8"><output id="peak-sensitivity-value">8%</output></label>
+                  <label>Peak model<select id="peak-model"><option>Lorentzian</option><option>Gaussian</option><option>Voigt</option><option>Pseudo-Voigt</option></select></label>
+                  <label><input id="show-fit-components" type="checkbox"> Show individual fitted peaks</label>
+                  <label><input id="show-cumulative-fit" type="checkbox"> Show cumulative fit</label>
+                  <label><input id="show-fit-residual" type="checkbox"> Show fit residual</label>
+                  <fieldset id="fit-peak-selector"><legend>Visible fitted peaks</legend><small>Enable peak detection to populate this list.</small></fieldset>
+                  <button id="run-raman-analysis" type="button">Fit peaks &amp; calculate parameters</button>
+                </div>
+              </details>
+              <details class="analysis-section">
+                <summary id="additional-processing-heading">Additional processing</summary>
+                <div class="analysis-section-fields">
+                  <label>Crop min<input id="crop-min" type="number" step="any" placeholder="Auto"></label>
+                  <label>Crop max<input id="crop-max" type="number" step="any" placeholder="Auto"></label>
+              <input id="baseline-spectrum" type="checkbox" hidden>
+              <label>Smoothing
+                <select id="smoothing-method"><option value="none">None</option><option value="moving">Moving average</option><option value="savitzky">Savitzky–Golay</option><option value="gaussian">Gaussian</option></select>
+              </label>
+              <label>Window <input id="smoothing-window" type="range" min="1" max="21" step="2" value="1"><output id="smoothing-value">1</output></label>
+              <label>Normalize
+                <select id="normalization-method"><option value="none">None</option><option value="maximum">Maximum</option><option value="area">Integrated area</option><option value="selected-peak">Strongest peak</option><option value="reference-peak">Reference peak</option></select>
+              </label>
+              <input id="normalize-spectrum" type="checkbox" hidden>
+              <label>Recipe<select id="analysis-recipe"><option value="">Load recipe...</option></select></label>
+              <button id="save-analysis-recipe" type="button">Save recipe</button>
+              <button id="compare-sample-spectra" type="button">Compare sample</button>
+                </div>
+              </details>
+            </div>
+          </details>
+          <details class="spectrum-control-group">
+            <summary>Export</summary>
+            <div class="spectrum-control-content">
+              <button id="export-spectrum-csv" type="button">CSV</button>
+              <button id="export-spectrum-svg" type="button">SVG</button>
+              <button id="export-spectrum-png" type="button">PNG</button>
+              <button id="export-analysis-json" type="button">Analysis JSON</button>
+            </div>
+          </details>
+        </div>
+        <small id="spectrum-help" hidden>Box zoom: drag a rectangle over an area. Pan X/Y: drag the plotted spectrum. Hold the middle mouse button and drag to pan temporarily in either mode.</small>
+        <div id="spectrum-tooltip" aria-live="polite"></div>
+        <img id="imported-image" alt="" hidden>
+        <canvas id="mapping-plot" hidden></canvas>
+        <svg id="spectrum-plot" viewBox="0 0 900 420" role="img" aria-labelledby="spectrum-title spectrum-description" hidden>
+          <title id="spectrum-title">Imported spectrum</title>
+          <desc id="spectrum-description">Spectrum intensity plotted against Raman shift.</desc>
+        </svg>
+        <section id="raman-analysis" hidden>
+          <div id="analysis-results" aria-live="polite"></div>
+        </section>
+      </section>
       <form id="upload-form">
         <label class="drop-zone" id="drop-zone" for="file">
           <strong id="file-label">Drop a file here or choose a file</strong>
           <small>Maximum size: 100 MiB. Empty files are rejected.</small>
         </label>
-        <input id="file" name="file" type="file">
+          <input id="file" name="file" type="file" multiple>
+        <input id="folder" type="file" multiple webkitdirectory directory>
+        <div style="margin-top:.6rem; display:flex; flex-wrap:wrap; align-items:center; gap:.5rem">
+          <button type="button" id="choose-files-button" style="margin-top:0; background:#087f5b; color:#fff; padding:.55rem .85rem; border-radius:7px">Choose a file</button>
+          <button type="button" id="open-folder-button" style="margin-top:0; background:#0b63a4; color:#fff; padding:.55rem .85rem; border-radius:7px">Choose folder</button>
+          <small style="color:#526170">All file formats are accepted.</small>
+        </div>
+        <small style="display:block; margin-top:.35rem; color:#526170">The folder chooser displays folders only. Select a folder to list its contained files here.</small>
+        <small id="remembered-folder" data-state="none" role="status" aria-live="polite">No remembered folder.</small>
+        <small id="autofill-status" role="status" aria-live="polite"></small>
+
+        <div id="preview-area" class="panel" style="margin-top:1rem; display:none">
+          <h3 style="margin:0 0 .5rem 0">File preview</h3>
+          <div id="preview-content" style="font-family:inherit; font-size:0.95rem; color:#15303a"></div>
+        </div>
 
         <div class="grid">
-          <label>Technique <span>*</span><input name="technique" maxlength="100" required placeholder="Raman spectroscopy"></label>
-          <label>Sample ID <span>*</span><input name="sample_id" maxlength="100" required placeholder="SAMPLE-001"></label>
+          <label>Technique <span>*</span>
+            <select name="technique" id="technique-select" required>
+              <option value="">Select technique</option>
+              <option>Raman spectroscopy</option>
+              <option>Photoluminescence</option>
+              <option>AFM</option>
+              <option>SEM</option>
+              <option>TEM</option>
+              <option>XRD</option>
+              <option>UV–Vis</option>
+              <option>Electrical transport</option>
+              <option>Hall measurement</option>
+              <option>XPS</option>
+              <option>Ellipsometry</option>
+              <option>Other…</option>
+            </select>
+          </label>
+          <label id="measurement-type-label" style="display:none">Measurement type <span>*</span>
+            <select name="measurement_type" id="measurement-type-select" required></select>
+          </label>
+          <label>Sample <span>*</span>
+            <input id="sample-input" name="sample_display" placeholder="Search or create sample..." autocomplete="off">
+            <input type="hidden" name="sample_id" id="sample-hidden">
+            <div id="sample-suggestions" style="position:relative"></div>
+          </label>
+          <div id="new-sample-fields" style="display:none" class="wide">
+            <label>New sample ID <span>*</span><input id="new-sample-id" maxlength="100" placeholder="T12-01"></label>
+            <label>Material<input id="new-sample-material" maxlength="200" placeholder="MoS2"></label>
+            <label class="wide">Notes<textarea id="new-sample-notes" maxlength="1000" placeholder="Optional sample notes"></textarea></label>
+          </div>
           <label>Measurement date<input name="measurement_date" type="date"></label>
+          <label>Material system<input name="material_system" maxlength="200" placeholder="MoS₂, graphene, Si/SiO₂…"></label>
           <label>Instrument<input name="instrument" maxlength="200" placeholder="Instrument and configuration"></label>
-          <label>Operator<input name="operator" maxlength="100"></label>
+          <label>Presets<select id="preset-select"><option value="">Load preset...</option></select></label>
+          <div style="display:flex; align-items:flex-end; gap:.5rem">
+            <button type="button" id="save-preset-button" style="background:#0b63a4">Save as preset</button>
+            <button type="button" id="edit-preset-button" style="background:#6b7280">Edit preset</button>
+          </div>
+          <label>Operator<input name="operator" id="operator-input" list="operator-list" maxlength="100" autocomplete="off"></label>
+          <datalist id="operator-list"></datalist>
           <label class="wide">Notes<textarea name="notes" maxlength="2000" placeholder="Conditions, preparation, or anomalies"></textarea></label>
         </div>
 
-        <button id="submit-button" type="submit">Import file</button>
+        <details id="experimental-details" class="panel" style="margin-top:1rem; display:none">
+          <summary style="font-weight:700; cursor:pointer">Experimental details ▾</summary>
+          <div id="details-raman" style="margin-top:0.75rem; display:none">
+            <div class="grid">
+              <label>Laser wavelength (nm)<input name="laser_wavelength" type="text" placeholder="532"></label>
+              <label>Laser power (mW)<input name="laser_power" type="text" placeholder="1.0"></label>
+              <label>Power at sample (mW)<input name="power_at_sample" type="text"></label>
+              <label>Objective<input name="objective" maxlength="100" placeholder="50x"></label>
+              <label>Integration time (s)<input name="integration_time" type="text" placeholder="10"></label>
+              <label>Accumulations<input name="accumulations" type="number" min="1" placeholder="3"></label>
+              <label>Detector<input name="detector" type="text"></label>
+              <label>Detector model<input name="detector_model" type="text"></label>
+              <label>Detector temperature (°C)<input name="detector_temperature" type="text"></label>
+              <label>Spectrometer<input name="spectrometer" type="text"></label>
+              <label>Grating (lines/mm)<input name="grating" type="text"></label>
+              <label>Binning start<input name="binning_start" type="text"></label>
+              <label>Binning length<input name="binning_length" type="text"></label>
+              <label>Measured spectral start<input name="spectral_start" type="text"></label>
+              <label>Measured spectral end<input name="spectral_range" type="text"></label>
+              <label>X-axis units<input name="x_units" type="text"></label>
+              <label>Long-pass filter angle<input name="lpf_angle" type="text"></label>
+              <label>Band-pass filter angle<input name="bpf_angle" type="text"></label>
+              <label>Display mode<input name="display_mode" type="text"></label>
+              <label>Live focus<input name="live_focus" type="text"></label>
+              <label>Z position<input name="z_position" type="text"></label>
+            </div>
+          </div>
+        </details>
+
+        <button id="submit-button" type="submit">Review import →</button>
+
+        <!-- Review modal -->
+        <div id="review-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); align-items:center; justify-content:center;">
+          <div style="background:#fff; padding:1rem; border-radius:10px; width:min(820px, 95%); max-height:85vh; overflow:auto;">
+            <h3>Review import</h3>
+            <div id="review-content" style="font-family:inherit; font-size:0.95rem; color:#15303a"></div>
+            <div style="display:flex; gap:.5rem; margin-top:1rem">
+              <button id="confirm-import" type="button">Confirm import</button>
+              <button id="cancel-import" type="button" style="background:#b42318">Cancel</button>
+            </div>
+          </div>
+        </div>
+
         <p id="status" role="status" aria-live="polite"></p>
       </form>
     </section>
 
     <section class="panel" aria-labelledby="recent-heading">
-      <h2 id="recent-heading">Recent imports</h2>
-      <table>
-        <thead><tr><th>File</th><th>Sample</th><th>Technique</th><th class="optional-column">Imported</th></tr></thead>
-        <tbody id="file-list"><tr><td colspan="4">Loading...</td></tr></tbody>
-      </table>
+      <h2 id="recent-heading">Imports</h2>
+      <div class="recent-controls">
+        <input id="recent-search" type="search" placeholder="Search filename or sample..." aria-label="Search recent imports">
+        <div class="recent-filter-row">
+          <select id="recent-technique-filter" aria-label="Filter by technique"><option value="">All techniques</option></select>
+          <select id="recent-sort" aria-label="Sort recent imports">
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="filename">Filename</option>
+            <option value="sample">Sample</option>
+          </select>
+          <select id="imports-group-by" aria-label="Group imports by">
+            <option value="sample-date">Group by sample + date</option>
+            <option value="material" selected>Group by material system</option>
+          </select>
+        </div>
+        <div id="import-queue-panel" class="panel" style="margin-top:1rem; display:none">
+          <h3 style="margin:0">Import queue</h3>
+          <div id="import-queue" class="import-queue" aria-live="polite"></div>
+        </div>
+        <div id="import-summary-panel" class="panel" style="margin-top:1rem; display:none" aria-live="polite"></div>
+      </div>
+      <div id="file-list" class="import-history"><p>Loading...</p></div>
+      <div class="recent-pagination">
+        <span id="recent-count"></span>
+        <div><button id="recent-previous" type="button">Previous</button> <button id="recent-next" type="button">Next</button></div>
+      </div>
     </section>
+
+    <div id="edit-metadata-modal" class="modal-overlay" hidden>
+      <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="edit-metadata-heading">
+        <h2 id="edit-metadata-heading">Edit import metadata</h2>
+        <p id="edit-metadata-filename"></p>
+        <div class="grid">
+          <label>Technique <span>*</span><input id="edit-technique" maxlength="100"></label>
+          <label>Sample ID <span>*</span><input id="edit-sample-id" maxlength="100"></label>
+          <label>Measurement date<input id="edit-measurement-date" type="date"></label>
+          <label>Material system<input id="edit-material-system" maxlength="200"></label>
+          <label>Instrument<input id="edit-instrument" maxlength="200"></label>
+          <label>Operator<input id="edit-operator" maxlength="100"></label>
+          <label class="wide">Notes<textarea id="edit-notes" maxlength="2000"></textarea></label>
+        </div>
+        <details class="panel" style="margin-top:1rem">
+          <summary style="font-weight:700; cursor:pointer">Experimental details</summary>
+          <div class="grid" style="margin-top:.75rem">
+            <label>Measurement type<input id="edit-measurement-type" maxlength="200"></label>
+            <label>Laser wavelength (nm)<input id="edit-laser-wavelength" maxlength="200"></label>
+            <label>Laser power (mW)<input id="edit-laser-power" maxlength="200"></label>
+            <label>Power at sample (mW)<input id="edit-power-at-sample" maxlength="200"></label>
+            <label>Objective<input id="edit-objective" maxlength="200"></label>
+            <label>Integration time (s)<input id="edit-integration-time" maxlength="200"></label>
+            <label>Accumulations<input id="edit-accumulations" maxlength="200"></label>
+            <label>Detector<input id="edit-detector" maxlength="200"></label>
+            <label>Detector model<input id="edit-detector-model" maxlength="200"></label>
+            <label>Detector temperature (°C)<input id="edit-detector-temperature" maxlength="200"></label>
+            <label>Spectrometer<input id="edit-spectrometer" maxlength="200"></label>
+            <label>Grating (lines/mm)<input id="edit-grating" maxlength="200"></label>
+            <label>Binning start<input id="edit-binning-start" maxlength="200"></label>
+            <label>Binning length<input id="edit-binning-length" maxlength="200"></label>
+            <label>Measured spectral start<input id="edit-spectral-start" maxlength="200"></label>
+            <label>Measured spectral end<input id="edit-spectral-range" maxlength="200"></label>
+            <label>X-axis units<input id="edit-x-units" maxlength="200"></label>
+            <label>Long-pass filter angle<input id="edit-lpf-angle" maxlength="200"></label>
+            <label>Band-pass filter angle<input id="edit-bpf-angle" maxlength="200"></label>
+            <label>Display mode<input id="edit-display-mode" maxlength="200"></label>
+            <label>Live focus<input id="edit-live-focus" maxlength="200"></label>
+            <label>Z position<input id="edit-z-position" maxlength="200"></label>
+          </div>
+        </details>
+        <p id="edit-metadata-error" class="error" role="alert"></p>
+        <div class="modal-actions">
+          <button id="cancel-metadata-edit" type="button" style="background:#6b7280">Cancel</button>
+          <button id="save-metadata-edit" type="button">Save changes</button>
+        </div>
+      </section>
+    </div>
   </main>
 
   <script>
     const form = document.querySelector("#upload-form");
     const input = document.querySelector("#file");
+    const folderInput = document.querySelector("#folder");
+    const rememberedFolder = document.querySelector("#remembered-folder");
+    const autofillStatus = document.querySelector("#autofill-status");
+    const importQueuePanel = document.querySelector('#import-queue-panel');
+    const importQueue = document.querySelector('#import-queue');
+    const importSummaryPanel = document.querySelector('#import-summary-panel');
+    const operatorInput = document.querySelector('#operator-input');
+    const operatorList = document.querySelector('#operator-list');
+    const techniqueSelect = document.querySelector('#technique-select');
+    const measurementTypeLabel = document.querySelector('#measurement-type-label');
+    const measurementTypeSelect = document.querySelector('#measurement-type-select');
+    const experimentalDetails = document.querySelector('#experimental-details');
+    const editableExperimentalFields = ['measurement_type', 'laser_wavelength', 'laser_power',
+      'power_at_sample', 'objective', 'integration_time', 'accumulations', 'detector',
+      'detector_model', 'detector_temperature', 'spectrometer', 'grating', 'binning_start',
+      'binning_length', 'spectral_start', 'spectral_range', 'x_units', 'lpf_angle',
+      'bpf_angle', 'display_mode', 'live_focus', 'z_position'];
+    const detailsRaman = document.querySelector('#details-raman');
     const dropZone = document.querySelector("#drop-zone");
     const fileLabel = document.querySelector("#file-label");
     const status = document.querySelector("#status");
     const submitButton = document.querySelector("#submit-button");
+    const presetSelect = document.querySelector('#preset-select');
+    const savePresetButton = document.querySelector('#save-preset-button');
+    const reviewModal = document.querySelector('#review-modal');
+    const reviewContent = document.querySelector('#review-content');
+    const confirmImport = document.querySelector('#confirm-import');
+    const cancelImport = document.querySelector('#cancel-import');
     const fileList = document.querySelector("#file-list");
-    let selectedFile = null;
+    const recentSearch = document.querySelector('#recent-search');
+    const recentTechniqueFilter = document.querySelector('#recent-technique-filter');
+    const recentSort = document.querySelector('#recent-sort');
+    const importsGroupBy = document.querySelector('#imports-group-by');
+    const recentCount = document.querySelector('#recent-count');
+    const recentPrevious = document.querySelector('#recent-previous');
+    const recentNext = document.querySelector('#recent-next');
+    const spectrumPanel = document.querySelector('#spectrum-panel');
+    document.querySelector('main').appendChild(spectrumPanel);
+    const spectrumPlot = document.querySelector('#spectrum-plot');
+    const importedImage = document.querySelector('#imported-image');
+    const mappingPlot = document.querySelector('#mapping-plot');
+    const spectrumMessage = document.querySelector('#spectrum-message');
+    const spectrumMetadata = document.querySelector('#spectrum-metadata');
+    const spectrumToolbar = document.querySelector('#spectrum-toolbar');
+    const spectrumHelp = document.querySelector('#spectrum-help');
+    const spectrumTooltip = document.querySelector('#spectrum-tooltip');
+    const normalizeSpectrum = document.querySelector('#normalize-spectrum');
+    const baselineSpectrum = document.querySelector('#baseline-spectrum');
+    const smoothingWindow = document.querySelector('#smoothing-window');
+    const smoothingValue = document.querySelector('#smoothing-value');
+    const showPeaks = document.querySelector('#show-peaks');
+    const peakSensitivity = document.querySelector('#peak-sensitivity');
+    const peakSensitivityValue = document.querySelector('#peak-sensitivity-value');
+    const cropMin = document.querySelector('#crop-min');
+    const cropMax = document.querySelector('#crop-max');
+    const removeCosmicRays = document.querySelector('#remove-cosmic-rays');
+    const detectCosmicRays = document.querySelector('#detect-cosmic-rays');
+    const subtractRayleighLine = document.querySelector('#subtract-rayleigh-line');
+    const rayleighCutoff = document.querySelector('#rayleigh-cutoff');
+    const baselineMethod = document.querySelector('#baseline-method');
+    const showDetectedBaseline = document.querySelector('#show-detected-baseline');
+    const subtractBaseline = document.querySelector('#subtract-baseline');
+    const smoothingMethod = document.querySelector('#smoothing-method');
+    const normalizationMethod = document.querySelector('#normalization-method');
+    const subtractReference = document.querySelector('#subtract-reference');
+    const peakModel = document.querySelector('#peak-model');
+    const showFitComponents = document.querySelector('#show-fit-components');
+    const showCumulativeFit = document.querySelector('#show-cumulative-fit');
+    const showFitResidual = document.querySelector('#show-fit-residual');
+    const fitPeakSelector = document.querySelector('#fit-peak-selector');
+    const analysisRecipe = document.querySelector('#analysis-recipe');
+    const ramanAnalysis = document.querySelector('#raman-analysis');
+    const analysisReference = document.querySelector('#analysis-reference');
+    const analysisResults = document.querySelector('#analysis-results');
+    const editMetadataModal = document.querySelector('#edit-metadata-modal');
+    const editMetadataError = document.querySelector('#edit-metadata-error');
+    let selectedFiles = [];
+    let currentSpectrum = null;
+    let currentImportedFile = null;
+    let spectrumView = null;
+    let plotGeometry = null;
+    let dragStart = null;
+    let interactionMode = 'zoom';
+    let editingImportedFile = null;
+    let referenceSpectrum = null;
+    let latestAnalysis = null;
+    let selectedFitPeaks = null;
+    const fitPeakColors = ['#e03131', '#1971c2', '#2f9e44', '#9c36b5', '#f08c00', '#0c8599', '#5f3dc4', '#c2255c'];
+    let allImportedFiles = [];
+    const materialProposalDecisions = new Map();
+    let recentPage = 1;
+    const recentPageSize = 8;
 
-    function selectFile(file) {
-      selectedFile = file || null;
-      fileLabel.textContent = selectedFile
-        ? `${selectedFile.name} (${selectedFile.size.toLocaleString()} bytes)`
-        : "Drop a file here or choose a file";
+    document.querySelectorAll('.spectrum-control-group').forEach((group) => {
+      group.addEventListener('toggle', () => {
+        if (!group.open) return;
+        document.querySelectorAll('.spectrum-control-group').forEach((other) => {
+          if (other !== group) other.open = false;
+        });
+      });
+    });
+
+    function svgElement(name, attributes = {}) {
+      const element = document.createElementNS('http://www.w3.org/2000/svg', name);
+      Object.entries(attributes).forEach(([key, value]) => element.setAttribute(key, value));
+      return element;
     }
 
-    input.addEventListener("change", () => selectFile(input.files[0]));
+    function cosmicRayIndexes(values) {
+      if (values.length < 5) return [];
+      return values.map((value, index, source) => {
+        if (index < 2 || index >= source.length - 2) return -1;
+        const neighbors = [source[index - 2], source[index - 1], source[index + 1], source[index + 2]].sort((a, b) => a - b);
+        const median = (neighbors[1] + neighbors[2]) / 2;
+        const spread = Math.max(1, Math.abs(neighbors[3] - neighbors[0]));
+        return value - median > spread * 8 ? index : -1;
+      }).filter((index) => index >= 0);
+    }
+
+    function detectedBaseline(values, method) {
+      if (method === 'none' || values.length < 2) return new Array(values.length).fill(0);
+      const first = values[0];
+      const last = values[values.length - 1];
+      if (method === 'linear') return values.map((_value, index) => first + ((last - first) * index / (values.length - 1)));
+      if (method === 'polynomial') {
+        const middle = values[Math.floor(values.length / 2)];
+        return values.map((_value, index) => {
+          const t = index / (values.length - 1);
+          return first * 2 * (t - .5) * (t - 1) - middle * 4 * t * (t - 1) + last * 2 * t * (t - .5);
+        });
+      }
+      const radius = method === 'als' ? 20 : 40;
+      return values.map((_value, index) => Math.min(...values.slice(Math.max(0, index - radius), Math.min(values.length, index + radius + 1))));
+    }
+
+    function subtractRayleighLeakage(xValues, yValues, halfWidth) {
+      if (!Number.isFinite(halfWidth) || halfWidth <= 0 || xValues.length < 2) return yValues.slice();
+      let leftIndex = 0;
+      let rightIndex = 0;
+      xValues.forEach((xValue, index) => {
+        if (Math.abs(xValue + halfWidth) < Math.abs(xValues[leftIndex] + halfWidth)) leftIndex = index;
+        if (Math.abs(xValue - halfWidth) < Math.abs(xValues[rightIndex] - halfWidth)) rightIndex = index;
+      });
+      const leftX = xValues[leftIndex];
+      const rightX = xValues[rightIndex];
+      if (leftX >= rightX) return yValues.slice();
+      const leftY = yValues[leftIndex];
+      const rightY = yValues[rightIndex];
+      return yValues.map((value, index) => {
+        const xValue = xValues[index];
+        if (xValue < leftX || xValue > rightX) return value;
+        const ratio = (xValue - leftX) / (rightX - leftX);
+        return leftY + ratio * (rightY - leftY);
+      });
+    }
+
+    function processedIntensities(spectrum) {
+      let values = spectrum.y.slice();
+      if (subtractReference.checked && referenceSpectrum && referenceSpectrum.y.length === values.length) {
+        values = values.map((value, index) => value - referenceSpectrum.y[index]);
+      }
+      if (subtractRayleighLine.checked) {
+        values = subtractRayleighLeakage(spectrum.x, values, Number(rayleighCutoff.value));
+      }
+      if (removeCosmicRays.checked && values.length >= 5) {
+        const cosmicIndexes = new Set(cosmicRayIndexes(values));
+        values = values.map((value, index, source) => {
+          if (!cosmicIndexes.has(index)) return value;
+          const neighbors = [source[index - 2], source[index - 1], source[index + 1], source[index + 2]].sort((a, b) => a - b);
+          const median = (neighbors[1] + neighbors[2]) / 2;
+          return median;
+        });
+      }
+      const windowSize = Number(smoothingWindow.value);
+      if (smoothingMethod.value !== 'none' && windowSize > 1) {
+        const radius = Math.floor(windowSize / 2);
+        values = values.map((_value, index) => {
+          const start = Math.max(0, index - radius);
+          const end = Math.min(values.length, index + radius + 1);
+          const neighborhood = values.slice(start, end);
+          if (smoothingMethod.value === 'gaussian') {
+            const weights = neighborhood.map((_item, localIndex) => Math.exp(-0.5 * ((localIndex - (neighborhood.length - 1) / 2) / Math.max(1, radius / 2)) ** 2));
+            return neighborhood.reduce((sum, item, localIndex) => sum + item * weights[localIndex], 0) / weights.reduce((a, b) => a + b, 0);
+          }
+          if (smoothingMethod.value === 'savitzky' && neighborhood.length >= 5) {
+            const coefficients = [-3, 12, 17, 12, -3];
+            const center = Math.floor(neighborhood.length / 2);
+            const five = neighborhood.slice(Math.max(0, center - 2), center + 3);
+            if (five.length === 5) return five.reduce((sum, item, i) => sum + item * coefficients[i], 0) / 35;
+          }
+          return neighborhood.reduce((sum, item) => sum + item, 0) / neighborhood.length;
+        });
+      }
+      if (subtractBaseline.checked && baselineMethod.value !== 'none' && values.length > 1) {
+        const baseline = detectedBaseline(values, baselineMethod.value);
+        values = values.map((value, index) => value - baseline[index]);
+      }
+      if (normalizationMethod.value !== 'none') {
+        const minimum = Math.min(...values);
+        const maximum = Math.max(...values);
+        if (normalizationMethod.value === 'area') {
+          const area = values.reduce((sum, value) => sum + Math.max(0, value - minimum), 0) || 1;
+          values = values.map((value) => (value - minimum) / area);
+        } else {
+          const span = maximum - minimum || 1;
+          values = values.map((value) => (value - minimum) / span);
+        }
+      }
+      return values;
+    }
+
+    function detectedPeaks(xValues, yValues, force = false) {
+      if ((!showPeaks.checked && !force) || yValues.length < 3) return [];
+      const threshold = Math.min(...yValues) + (Math.max(...yValues) - Math.min(...yValues)) * Number(peakSensitivity.value) / 100;
+      const peaks = [];
+      for (let index = 1; index < yValues.length - 1; index += 1) {
+        if (yValues[index] > threshold && yValues[index] > yValues[index - 1] && yValues[index] >= yValues[index + 1]) {
+          peaks.push({ x: xValues[index], y: yValues[index] });
+        }
+      }
+      return peaks.sort((a, b) => b.y - a.y).slice(0, 20).sort((a, b) => a.x - b.x);
+    }
+
+    function assignedRamanPeaks(xValues, yValues) {
+      if (!latestAnalysis?.peaks || !xValues.length) return [];
+      return [
+        ['E_mode', 'MoS₂ E′ / E₂g¹'],
+        ['A1_mode', 'MoS₂ A₁′ / A₁g'],
+      ].flatMap(([key, assignment]) => {
+        const position = Number(latestAnalysis.peaks[key]?.position);
+        if (!Number.isFinite(position) || position < xValues[0] || position > xValues[xValues.length - 1]) return [];
+        let nearest = 0;
+        for (let index = 1; index < xValues.length; index += 1) {
+          if (Math.abs(xValues[index] - position) < Math.abs(xValues[nearest] - position)) nearest = index;
+        }
+        return [{ x: position, y: yValues[nearest], assignment, assigned: true }];
+      });
+    }
+
+    function fittedPeaks(xValues, yValues) {
+      const assigned = assignedRamanPeaks(xValues, yValues);
+      const generic = detectedPeaks(xValues, yValues, true)
+        .filter((peak) => !assigned.some((known) => Math.abs(known.x - peak.x) < 4));
+      return [...assigned, ...generic.slice(0, Math.max(0, 8 - assigned.length))]
+        .sort((a, b) => a.x - b.x);
+    }
+
+    function fitPeakKey(peak) { return peak.x.toFixed(3); }
+
+    function renderFitPeakSelector(peaks) {
+      const keys = peaks.map(fitPeakKey);
+      if (selectedFitPeaks === null) selectedFitPeaks = new Set(keys);
+      fitPeakSelector.replaceChildren();
+      const legend = document.createElement('legend');
+      legend.textContent = 'Visible fitted peaks';
+      fitPeakSelector.appendChild(legend);
+      if (!peaks.length) {
+        const empty = document.createElement('small');
+        empty.textContent = 'No peaks detected at the current sensitivity.';
+        fitPeakSelector.appendChild(empty);
+        return;
+      }
+      peaks.forEach((peak, index) => {
+        const key = fitPeakKey(peak);
+        const label = document.createElement('label');
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = selectedFitPeaks.has(key);
+        checkbox.addEventListener('change', () => {
+          if (checkbox.checked) selectedFitPeaks.add(key); else selectedFitPeaks.delete(key);
+          renderSpectrum();
+        });
+        const swatch = document.createElement('span');
+        swatch.className = 'peak-color-swatch';
+        swatch.style.background = fitPeakColors[index % fitPeakColors.length];
+        const peakName = peak.assignment ? `${peak.assignment}: ` : '';
+        label.append(checkbox, swatch, document.createTextNode(`${peakName}${peak.x.toFixed(1)} cm⁻¹`));
+        fitPeakSelector.appendChild(label);
+      });
+    }
+
+    function renderSpectrum(spectrum = currentSpectrum) {
+      if (!spectrum) return;
+      const xValues = spectrum.x;
+      const yValues = processedIntensities(spectrum);
+      const width = 900;
+      const height = 420;
+      const margin = { top: 25, right: 25, bottom: 55, left: 75 };
+      if (!spectrumView) {
+        const fullXMin = Math.min(...xValues);
+        const fullXMax = Math.max(...xValues);
+        const requestedMin = Number(cropMin.value);
+        const requestedMax = Number(cropMax.value);
+        const selectedMin = cropMin.value !== '' ? Math.max(fullXMin, requestedMin) : fullXMin;
+        const selectedMax = cropMax.value !== '' ? Math.min(fullXMax, requestedMax) : fullXMax;
+        spectrumView = {
+          xMin: selectedMin < selectedMax ? selectedMin : fullXMin,
+          xMax: selectedMin < selectedMax ? selectedMax : fullXMax,
+          yMin: Math.min(...yValues),
+          yMax: Math.max(...yValues),
+        };
+      }
+      const visibleIndexes = xValues.map((value, index) => ({ value, index })).filter(({ value }) => value >= spectrumView.xMin && value <= spectrumView.xMax);
+      const visibleX = visibleIndexes.map(({ value }) => value);
+      const visibleY = visibleIndexes.map(({ index }) => yValues[index]);
+      const xMin = spectrumView.xMin;
+      const xMax = spectrumView.xMax;
+      const yMin = spectrumView.yMin;
+      const yMax = spectrumView.yMax;
+      const xSpan = xMax - xMin || 1;
+      const ySpan = yMax - yMin || 1;
+      const scaleX = (value) => margin.left + ((value - xMin) / xSpan) * (width - margin.left - margin.right);
+      const scaleY = (value) => height - margin.bottom - ((value - yMin) / ySpan) * (height - margin.top - margin.bottom);
+
+      spectrumPlot.replaceChildren();
+      const title = svgElement('title', { id: 'spectrum-title' });
+      title.textContent = spectrum.filename;
+      spectrumPlot.appendChild(title);
+      const description = svgElement('desc', { id: 'spectrum-description' });
+      description.textContent = `${spectrum.point_count} spectrum points.`;
+      spectrumPlot.appendChild(description);
+
+      for (let tick = 0; tick <= 5; tick += 1) {
+        const xValue = xMin + (xSpan * tick / 5);
+        const x = scaleX(xValue);
+        spectrumPlot.appendChild(svgElement('line', { x1: x, y1: margin.top, x2: x, y2: height - margin.bottom, stroke: '#e2e8ed' }));
+        const label = svgElement('text', { x, y: height - margin.bottom + 22, 'text-anchor': 'middle', fill: '#526170', 'font-size': '12' });
+        label.textContent = xValue.toFixed(0);
+        spectrumPlot.appendChild(label);
+
+        const yValue = yMin + (ySpan * tick / 5);
+        const y = scaleY(yValue);
+        spectrumPlot.appendChild(svgElement('line', { x1: margin.left, y1: y, x2: width - margin.right, y2: y, stroke: '#e2e8ed' }));
+        const yLabel = svgElement('text', { x: margin.left - 10, y: y + 4, 'text-anchor': 'end', fill: '#526170', 'font-size': '12' });
+        yLabel.textContent = yValue.toLocaleString(undefined, { maximumFractionDigits: 0 });
+        spectrumPlot.appendChild(yLabel);
+      }
+
+      const points = visibleIndexes.map(({ value, index }) => `${scaleX(value)},${scaleY(yValues[index])}`).join(' ');
+      spectrumPlot.appendChild(svgElement('polyline', {
+        points,
+        fill: 'none',
+        stroke: '#087f5b',
+        'stroke-width': '2',
+        'vector-effect': 'non-scaling-stroke',
+      }));
+      if (showDetectedBaseline.checked && baselineMethod.value !== 'none') {
+        const baseline = detectedBaseline(spectrum.y, baselineMethod.value);
+        const baselinePoints = visibleIndexes.map(({ value, index }) => `${scaleX(value)},${scaleY(baseline[index])}`).join(' ');
+        spectrumPlot.appendChild(svgElement('polyline', {
+          points: baselinePoints, fill: 'none', stroke: '#d97706', 'stroke-width': '1.7',
+          'stroke-dasharray': '7 4', 'vector-effect': 'non-scaling-stroke',
+        }));
+      }
+      if (detectCosmicRays.checked) {
+        const cosmicIndexes = new Set(cosmicRayIndexes(spectrum.y));
+        visibleIndexes.filter(({ index }) => cosmicIndexes.has(index)).forEach(({ value, index }) => {
+          spectrumPlot.appendChild(svgElement('circle', {
+            cx: scaleX(value), cy: scaleY(spectrum.y[index]), r: 6,
+            fill: 'none', stroke: '#c92a2a', 'stroke-width': '2',
+          }));
+        });
+      }
+      const fitPeaks = fittedPeaks(xValues, yValues);
+      renderFitPeakSelector(fitPeaks);
+      if (showFitComponents.checked || showCumulativeFit.checked || showFitResidual.checked) {
+        const selectedPeaks = fitPeaks.filter((peak) => selectedFitPeaks.has(fitPeakKey(peak)));
+        const componentValue = (peak, xValue) => {
+          const width = 4;
+          const offset = (xValue - peak.x) / width;
+          const gaussian = Math.exp(-4 * Math.log(2) * offset * offset);
+          const lorentzian = 1 / (1 + 4 * offset * offset);
+          let shape = lorentzian;
+          if (peakModel.value === 'Gaussian') shape = gaussian;
+          if (peakModel.value === 'Voigt') shape = .5 * gaussian + .5 * lorentzian;
+          if (peakModel.value === 'Pseudo-Voigt') shape = .35 * gaussian + .65 * lorentzian;
+          return yMin + (peak.y - yMin) * shape;
+        };
+        const modelValue = (xValue) => yMin + selectedPeaks.reduce(
+          (sum, peak) => sum + componentValue(peak, xValue) - yMin, 0
+        );
+        const modelValues = visibleX.map(modelValue);
+        if (showFitComponents.checked) {
+          selectedPeaks.forEach((peak) => {
+            const colorIndex = fitPeaks.indexOf(peak) % fitPeakColors.length;
+            const componentPoints = visibleX.map((xValue) => `${scaleX(xValue)},${scaleY(componentValue(peak, xValue))}`).join(' ');
+            spectrumPlot.appendChild(svgElement('polyline', {
+              points: componentPoints, fill: 'none', stroke: fitPeakColors[colorIndex],
+              'stroke-width': '1.5', 'stroke-dasharray': '5 3',
+            }));
+          });
+        }
+        if (showCumulativeFit.checked) {
+          const modelPoints = visibleX.map((xValue, index) => `${scaleX(xValue)},${scaleY(modelValues[index])}`).join(' ');
+          spectrumPlot.appendChild(svgElement('polyline', { points: modelPoints, fill: 'none', stroke: '#111827', 'stroke-width': '2.2' }));
+        }
+        if (showFitResidual.checked) {
+          const residualValues = visibleY.map((value, index) => yMin + (value - modelValues[index]) * .2);
+          const residualPoints = visibleX.map((xValue, index) => `${scaleX(xValue)},${scaleY(residualValues[index])}`).join(' ');
+          spectrumPlot.appendChild(svgElement('polyline', { points: residualPoints, fill: 'none', stroke: '#7048e8', 'stroke-width': '1.2' }));
+        }
+      }
+      const xLabel = svgElement('text', { x: width / 2, y: height - 12, 'text-anchor': 'middle', fill: '#17212b', 'font-size': '14' });
+      xLabel.textContent = spectrum.x_units ? `Raman shift (${spectrum.x_units})` : 'X';
+      spectrumPlot.appendChild(xLabel);
+      const yLabel = svgElement('text', { x: 18, y: height / 2, transform: `rotate(-90 18 ${height / 2})`, 'text-anchor': 'middle', fill: '#17212b', 'font-size': '14' });
+      yLabel.textContent = 'Intensity';
+      spectrumPlot.appendChild(yLabel);
+      const displayPeaks = detectedPeaks(visibleX, visibleY);
+      assignedRamanPeaks(visibleX, visibleY).forEach((assigned) => {
+        const duplicateIndex = displayPeaks.findIndex((peak) => Math.abs(peak.x - assigned.x) < 4);
+        if (duplicateIndex >= 0) displayPeaks.splice(duplicateIndex, 1);
+        displayPeaks.push(assigned);
+      });
+      displayPeaks.forEach((peak) => {
+        spectrumPlot.appendChild(svgElement('circle', { cx: scaleX(peak.x), cy: scaleY(peak.y), r: 4, fill: '#b42318' }));
+        const peakLabel = svgElement('text', { x: scaleX(peak.x), y: scaleY(peak.y) - 8, 'text-anchor': 'middle', fill: '#b42318', 'font-size': '11' });
+        peakLabel.textContent = peak.assignment ? `${peak.assignment} ${peak.x.toFixed(1)}` : peak.x.toFixed(1);
+        spectrumPlot.appendChild(peakLabel);
+      });
+      plotGeometry = { width, height, margin, scaleX, scaleY, xMin, xMax, yMin, yMax, xValues, yValues };
+      spectrumPlot.hidden = false;
+      const measuredMin = Math.min(...spectrum.x);
+      const measuredMax = Math.max(...spectrum.x);
+      spectrumMessage.textContent = `${spectrum.filename} · ${spectrum.point_count.toLocaleString()} points · measured range ${measuredMin.toLocaleString()} to ${measuredMax.toLocaleString()} ${spectrum.x_units || ''}`;
+    }
+
+    function renderImportedMetadata(file) {
+      spectrumMetadata.replaceChildren();
+      [
+        ['Sample', file.sample_id], ['Material', file.material_system], ['Technique', file.technique], ['Date', file.measurement_date],
+        ['Instrument', file.instrument], ['Imported', new Date(file.imported_at).toLocaleString()],
+      ].forEach(([label, value]) => {
+        if (!value) return;
+        const item = document.createElement('span');
+        item.textContent = `${label}: ${value}`;
+        spectrumMetadata.appendChild(item);
+      });
+    }
+
+    function renderMapping(mapping) {
+      mappingPlot.width = mapping.columns;
+      mappingPlot.height = mapping.rows;
+      const context = mappingPlot.getContext('2d');
+      const image = context.createImageData(mapping.columns, mapping.rows);
+      const span = mapping.maximum - mapping.minimum || 1;
+      mapping.matrix.forEach((row, y) => row.forEach((value, x) => {
+        const normalized = Math.max(0, Math.min(1, (value - mapping.minimum) / span));
+        const offset = (y * mapping.columns + x) * 4;
+        image.data[offset] = Math.round(255 * normalized);
+        image.data[offset + 1] = Math.round(255 * Math.sqrt(normalized));
+        image.data[offset + 2] = Math.round(255 * (1 - normalized));
+        image.data[offset + 3] = 255;
+      }));
+      context.putImageData(image, 0, 0);
+      mappingPlot.hidden = false;
+      spectrumMessage.textContent = `${mapping.filename} · ${mapping.rows} × ${mapping.columns} map · range ${mapping.minimum.toLocaleString()} to ${mapping.maximum.toLocaleString()}`;
+    }
+
+    async function showImportedSpectrum(file, button) {
+      document.querySelectorAll('.import-history button').forEach((item) => item.classList.remove('active'));
+      button.classList.add('active');
+      spectrumPlot.hidden = true;
+      importedImage.hidden = true;
+      mappingPlot.hidden = true;
+      importedImage.removeAttribute('src');
+      spectrumMessage.textContent = `Loading ${file.original_filename}...`;
+      currentImportedFile = file;
+      latestAnalysis = null;
+      renderImportedMetadata(file);
+      const isImage = (file.content_type || '').startsWith('image/') || /\.(jpe?g|png|gif|webp|bmp|tiff?|svg)$/i.test(file.original_filename);
+      if (isImage) {
+        currentSpectrum = null;
+        spectrumToolbar.hidden = true;
+        spectrumHelp.hidden = true;
+        ramanAnalysis.hidden = true;
+        analysisResults.replaceChildren();
+        importedImage.alt = `Imported image ${file.original_filename}`;
+        importedImage.onload = () => {
+          spectrumMessage.textContent = `${file.original_filename} · ${importedImage.naturalWidth} × ${importedImage.naturalHeight} pixels`;
+        };
+        importedImage.onerror = () => {
+          importedImage.hidden = true;
+          spectrumMessage.textContent = 'Image preview could not be loaded.';
+        };
+        importedImage.src = `/files/${encodeURIComponent(file.file_id)}/content`;
+        importedImage.hidden = false;
+        spectrumPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      try {
+        const response = await fetch(`/files/${encodeURIComponent(file.file_id)}/spectrum`);
+        const result = await response.json();
+        if (!response.ok) throw new Error(getApiErrorMessage(result, 'Spectrum preview unavailable.'));
+        currentSpectrum = result;
+        selectedFitPeaks = null;
+        spectrumView = null;
+        document.querySelectorAll('.spectrum-control-group').forEach((group) => { group.open = false; });
+        spectrumToolbar.hidden = false;
+        spectrumHelp.hidden = false;
+        ramanAnalysis.hidden = true;
+        analysisResults.replaceChildren();
+        renderSpectrum();
+        spectrumPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (error) {
+        spectrumToolbar.hidden = true;
+        spectrumHelp.hidden = true;
+        ramanAnalysis.hidden = true;
+        if (/\.csv$/i.test(file.original_filename)) {
+          const mappingResponse = await fetch(`/files/${encodeURIComponent(file.file_id)}/mapping`);
+          if (mappingResponse.ok) {
+            renderMapping(await mappingResponse.json());
+            spectrumPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return;
+          }
+        }
+        spectrumMessage.textContent = error.message;
+      }
+    }
+
+    function resetSpectrumView() {
+      if (!currentSpectrum) return;
+      spectrumView = null;
+      renderSpectrum();
+    }
+
+    function addAnalysisRow(table, label, peak) {
+      const row = table.insertRow();
+      const name = row.insertCell();
+      name.textContent = label;
+      [peak?.position, peak?.fwhm, peak?.height, peak?.area, peak?.snr].forEach((value) => {
+        const cell = row.insertCell();
+        cell.textContent = value ?? '—';
+      });
+    }
+
+    async function runRamanAnalysis() {
+      if (!currentImportedFile) return;
+      ramanAnalysis.hidden = false;
+      analysisResults.textContent = 'Analyzing...';
+      const reference = analysisReference.value && analysisReference.value !== '__sio2_si_model__'
+        ? `?reference_file_id=${encodeURIComponent(analysisReference.value)}`
+        : '';
+      try {
+        const response = await fetch(`/files/${encodeURIComponent(currentImportedFile.file_id)}/analysis${reference}`);
+        const analysis = await response.json();
+        if (!response.ok) throw new Error(getApiErrorMessage(analysis, 'Analysis failed.'));
+        latestAnalysis = analysis;
+        analysisResults.replaceChildren();
+        const heading = document.createElement('h4');
+        heading.textContent = 'Raman peak analysis';
+        analysisResults.appendChild(heading);
+        const table = document.createElement('table');
+        const header = table.createTHead().insertRow();
+        ['Mode', 'Position', 'FWHM', 'Height', 'Area', 'SNR'].forEach((label) => {
+          const cell = document.createElement('th');
+          cell.textContent = label;
+          header.appendChild(cell);
+        });
+        const body = table.createTBody();
+        addAnalysisRow(body, "MoS₂ E′ / E₂g¹", analysis.peaks.E_mode);
+        addAnalysisRow(body, "MoS₂ A₁′ / A₁g", analysis.peaks.A1_mode);
+        analysisResults.appendChild(table);
+        selectedFitPeaks = null;
+        renderSpectrum();
+        const summary = document.createElement('p');
+        summary.textContent = `Peak separation: ${analysis.peak_separation ?? '—'} cm⁻¹ · Layer estimate: ${analysis.layer_estimate || '—'}`;
+        analysisResults.appendChild(summary);
+        const quality = document.createElement('p');
+        quality.textContent = `QC ${analysis.quality.badge}: ${analysis.quality.point_count} points; median spacing ${analysis.quality.median_spacing}; intensity ${analysis.quality.intensity_min.toLocaleString()} to ${analysis.quality.intensity_max.toLocaleString()}.`;
+        analysisResults.appendChild(quality);
+        if (analysis.calibration) {
+          const calibration = document.createElement('p');
+          calibration.textContent = analysis.calibration.warning
+            ? `Calibration: ${analysis.calibration.warning}`
+            : `Calibration: Si observed at ${analysis.calibration.observed_si_position} cm⁻¹; applied shift ${analysis.calibration.applied_shift} cm⁻¹.`;
+          analysisResults.appendChild(calibration);
+        }
+        [...analysis.quality.warnings, analysis.interpretation_warning].forEach((message) => {
+          const warning = document.createElement('p');
+          warning.className = 'analysis-warning';
+          warning.textContent = message;
+          analysisResults.appendChild(warning);
+        });
+        if (currentImportedFile.sample_id) {
+          const repeatResponse = await fetch(`/samples/${encodeURIComponent(currentImportedFile.sample_id)}/raman-summary`);
+          if (repeatResponse.ok) {
+            const repeatability = await repeatResponse.json();
+            const repeat = document.createElement('p');
+            repeat.textContent = repeatability.spectrum_count > 1
+              ? `Repeatability: ${repeatability.spectrum_count} fitted spectra; mean separation ${repeatability.separation_mean} cm⁻¹; standard deviation ${repeatability.separation_stdev} cm⁻¹.`
+              : 'Repeatability: fewer than two fitted spectra are available for this sample.';
+            analysisResults.appendChild(repeat);
+          }
+        }
+        const provenance = document.createElement('small');
+        provenance.textContent = `Derived ${new Date(analysis.analyzed_at).toLocaleString()} from SHA-256 ${analysis.sha256}. Raw data was not modified.`;
+        analysisResults.appendChild(provenance);
+      } catch (error) {
+        analysisResults.textContent = error.message;
+      }
+    }
+
+    document.querySelector('#run-raman-analysis').addEventListener('click', runRamanAnalysis);
+
+    function currentAnalysisConfig() {
+      return {
+        crop_min: cropMin.value, crop_max: cropMax.value,
+        remove_cosmic_rays: removeCosmicRays.checked,
+        baseline_method: baselineMethod.value,
+        smoothing_method: smoothingMethod.value,
+        smoothing_window: smoothingWindow.value,
+        normalization_method: normalizationMethod.value,
+        subtract_reference: subtractReference.checked,
+        peak_model: peakModel.value,
+        show_fit_components: showFitComponents.checked,
+        show_fit_residual: showFitResidual.checked,
+        peak_sensitivity: peakSensitivity.value,
+      };
+    }
+
+    function applyAnalysisConfig(config) {
+      cropMin.value = config.crop_min || '';
+      cropMax.value = config.crop_max || '';
+      removeCosmicRays.checked = Boolean(config.remove_cosmic_rays);
+      baselineMethod.value = config.baseline_method || 'none';
+      smoothingMethod.value = config.smoothing_method || 'none';
+      smoothingWindow.value = config.smoothing_window || '1';
+      smoothingValue.value = smoothingWindow.value;
+      normalizationMethod.value = config.normalization_method || 'none';
+      subtractReference.checked = Boolean(config.subtract_reference);
+      peakModel.value = config.peak_model || 'Lorentzian';
+      showFitComponents.checked = Boolean(config.show_fit_components);
+      showFitResidual.checked = Boolean(config.show_fit_residual);
+      peakSensitivity.value = config.peak_sensitivity || '8';
+      peakSensitivityValue.value = `${peakSensitivity.value}%`;
+      resetSpectrumView();
+    }
+
+    async function fetchAnalysisRecipes() {
+      const response = await fetch('/analysis/recipes');
+      if (!response.ok) return;
+      const recipes = await response.json();
+      analysisRecipe.replaceChildren(new Option('Load recipe...', ''));
+      recipes.forEach((recipe) => {
+        const option = new Option(recipe.name, recipe.recipe_id);
+        option.dataset.config = JSON.stringify(recipe.config);
+        analysisRecipe.add(option);
+      });
+    }
+
+    analysisRecipe.addEventListener('change', () => {
+      const option = analysisRecipe.selectedOptions[0];
+      if (option?.dataset.config) applyAnalysisConfig(JSON.parse(option.dataset.config));
+    });
+    document.querySelector('#save-analysis-recipe').addEventListener('click', async () => {
+      const name = prompt('Analysis recipe name');
+      if (!name) return;
+      const response = await fetch('/analysis/recipes', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, config: currentAnalysisConfig() }),
+      });
+      if (response.ok) await fetchAnalysisRecipes();
+    });
+    document.querySelector('#export-analysis-json').addEventListener('click', () => {
+      if (!currentImportedFile) return;
+      const payload = { source: currentImportedFile, processing: currentAnalysisConfig(), analysis: latestAnalysis };
+      downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }), `${currentImportedFile.original_filename}.analysis.json`);
+    });
+    document.querySelector('#compare-sample-spectra').addEventListener('click', async () => {
+      if (!currentImportedFile?.sample_id) return;
+      const ids = allImportedFiles.filter((file) => file.sample_id === currentImportedFile.sample_id && /\.(txt|csv|log)$/i.test(file.original_filename)).map((file) => file.file_id).slice(0, 20);
+      if (ids.length < 2) { analysisResults.textContent = 'At least two spectra are required for comparison.'; ramanAnalysis.hidden = false; return; }
+      const response = await fetch('/analysis/compare', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file_ids: ids }) });
+      const result = await response.json();
+      ramanAnalysis.hidden = false;
+      analysisResults.replaceChildren();
+      const heading = document.createElement('h4'); heading.textContent = 'Sample comparison'; analysisResults.appendChild(heading);
+      result.spectra.forEach((item) => { const line = document.createElement('p'); line.textContent = `${item.filename}: correlation ${item.correlation_to_first ?? '—'}, separation ${item.peak_separation ?? '—'} cm⁻¹`; analysisResults.appendChild(line); });
+    });
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function exportSpectrumCsv() {
+      if (!currentSpectrum) return;
+      const yValues = processedIntensities(currentSpectrum);
+      const rows = ['x,intensity', ...currentSpectrum.x.map((x, index) => `${x},${yValues[index]}`)];
+      downloadBlob(new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' }), `${currentSpectrum.filename}.csv`);
+    }
+
+    function serializedSpectrumSvg() {
+      const clone = spectrumPlot.cloneNode(true);
+      clone.removeAttribute('hidden');
+      clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      clone.setAttribute('width', '900');
+      clone.setAttribute('height', '420');
+      const background = svgElement('rect', { width: '100%', height: '100%', fill: 'white' });
+      clone.insertBefore(background, clone.firstChild);
+      return new XMLSerializer().serializeToString(clone);
+    }
+
+    document.querySelector('#reset-spectrum-view').addEventListener('click', resetSpectrumView);
+    document.querySelector('#export-spectrum-csv').addEventListener('click', exportSpectrumCsv);
+    document.querySelector('#export-spectrum-svg').addEventListener('click', () => {
+      if (!currentSpectrum) return;
+      downloadBlob(new Blob([serializedSpectrumSvg()], { type: 'image/svg+xml;charset=utf-8' }), `${currentSpectrum.filename}.svg`);
+    });
+    document.querySelector('#export-spectrum-png').addEventListener('click', () => {
+      if (!currentSpectrum) return;
+      const image = new Image();
+      const svgBlob = new Blob([serializedSpectrumSvg()], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+      image.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1800;
+        canvas.height = 840;
+        const context = canvas.getContext('2d');
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          if (blob) downloadBlob(blob, `${currentSpectrum.filename}.png`);
+          URL.revokeObjectURL(url);
+        }, 'image/png');
+      };
+      image.src = url;
+    });
+
+    // Processing redraws must keep the user's zoom/pan viewport so methods can
+    // be compared over exactly the same region. Cropping and the explicit reset
+    // button are the only controls here that intentionally establish a new view.
+    [cropMin, cropMax].forEach((control) => control.addEventListener('change', resetSpectrumView));
+    [removeCosmicRays, detectCosmicRays, subtractRayleighLine, rayleighCutoff,
+      baselineMethod, showDetectedBaseline, subtractBaseline,
+      smoothingMethod, normalizationMethod, subtractReference]
+      .forEach((control) => control.addEventListener('change', () => renderSpectrum()));
+    showPeaks.addEventListener('change', () => renderSpectrum());
+    smoothingWindow.addEventListener('input', () => { smoothingValue.value = smoothingWindow.value; renderSpectrum(); });
+    peakSensitivity.addEventListener('input', () => { peakSensitivityValue.value = `${peakSensitivity.value}%`; renderSpectrum(); });
+    [peakModel, showFitComponents, showCumulativeFit, showFitResidual].forEach((control) => control.addEventListener('change', () => renderSpectrum()));
+    analysisReference.addEventListener('change', async () => {
+      referenceSpectrum = null;
+      if (analysisReference.value === '__sio2_si_model__' && currentImportedFile) {
+        const response = await fetch(`/files/${encodeURIComponent(currentImportedFile.file_id)}/substrate-model`);
+        if (response.ok) {
+          const model = await response.json();
+          referenceSpectrum = { y: model.substrate_y };
+          subtractReference.checked = true;
+          const protectedCount = model.protected_regions?.length || 0;
+          const protection = protectedCount ? ` ${protectedCount} assigned MoS₂ peak regions were protected.` : '';
+          showStatus(`Target-specific SiO₂/Si substrate detected with ${Math.round(model.confidence * 100)}% confidence using ${model.reference_files.length} learned references.${protection}`, 'success');
+        } else {
+          showStatus('A learned SiO₂/Si model could not be built for this spectrum.', 'error');
+        }
+      } else if (analysisReference.value) {
+        const response = await fetch(`/files/${encodeURIComponent(analysisReference.value)}/spectrum`);
+        if (response.ok) referenceSpectrum = await response.json();
+      }
+      if (subtractReference.checked) renderSpectrum();
+    });
+
+    const boxZoomMode = document.querySelector('#box-zoom-mode');
+    const panSpectrumMode = document.querySelector('#pan-spectrum-mode');
+    function setInteractionMode(mode) {
+      interactionMode = mode;
+      boxZoomMode.classList.toggle('active', mode === 'zoom');
+      panSpectrumMode.classList.toggle('active', mode === 'pan');
+      boxZoomMode.setAttribute('aria-pressed', mode === 'zoom');
+      panSpectrumMode.setAttribute('aria-pressed', mode === 'pan');
+      spectrumPlot.style.cursor = mode === 'zoom' ? 'crosshair' : 'grab';
+    }
+    boxZoomMode.addEventListener('click', () => setInteractionMode('zoom'));
+    panSpectrumMode.addEventListener('click', () => setInteractionMode('pan'));
+
+    spectrumPlot.addEventListener('wheel', (event) => {
+      if (!currentSpectrum || !plotGeometry) return;
+      event.preventDefault();
+      const rect = spectrumPlot.getBoundingClientRect();
+      const svgX = (event.clientX - rect.left) * 900 / rect.width;
+      const ratio = Math.max(0, Math.min(1, (svgX - plotGeometry.margin.left) / (900 - plotGeometry.margin.left - plotGeometry.margin.right)));
+      const center = spectrumView.xMin + ratio * (spectrumView.xMax - spectrumView.xMin);
+      const factor = event.deltaY < 0 ? 0.8 : 1.25;
+      const fullMin = Math.min(...currentSpectrum.x);
+      const fullMax = Math.max(...currentSpectrum.x);
+      const fullSpan = fullMax - fullMin;
+      const currentSpan = spectrumView.xMax - spectrumView.xMin;
+      const nextSpan = Math.min(fullSpan, currentSpan * factor);
+      const reachedFullView = event.deltaY > 0 && nextSpan >= fullSpan * 0.999999;
+      let nextMin;
+      let nextMax;
+      if (reachedFullView) {
+        nextMin = fullMin;
+        nextMax = fullMax;
+      } else {
+        nextMin = center - ratio * nextSpan;
+        nextMax = nextMin + nextSpan;
+        if (nextMin < fullMin) {
+          nextMin = fullMin;
+          nextMax = fullMin + nextSpan;
+        }
+        if (nextMax > fullMax) {
+          nextMax = fullMax;
+          nextMin = fullMax - nextSpan;
+        }
+      }
+      if (reachedFullView) {
+        const fullY = processedIntensities(currentSpectrum);
+        spectrumView = {
+          xMin: fullMin,
+          xMax: fullMax,
+          yMin: Math.min(...fullY),
+          yMax: Math.max(...fullY),
+        };
+      } else {
+        spectrumView = { ...spectrumView, xMin: nextMin, xMax: nextMax };
+      }
+      renderSpectrum();
+    }, { passive: false });
+
+    function pointerToPlot(event) {
+      const rect = spectrumPlot.getBoundingClientRect();
+      return {
+        x: Math.max(plotGeometry.margin.left, Math.min(900 - plotGeometry.margin.right, (event.clientX - rect.left) * 900 / rect.width)),
+        y: Math.max(plotGeometry.margin.top, Math.min(420 - plotGeometry.margin.bottom, (event.clientY - rect.top) * 420 / rect.height)),
+        rect,
+      };
+    }
+
+    function plotToData(x, y, view = spectrumView) {
+      const plotWidth = 900 - plotGeometry.margin.left - plotGeometry.margin.right;
+      const plotHeight = 420 - plotGeometry.margin.top - plotGeometry.margin.bottom;
+      return {
+        x: view.xMin + (x - plotGeometry.margin.left) / plotWidth * (view.xMax - view.xMin),
+        y: view.yMax - (y - plotGeometry.margin.top) / plotHeight * (view.yMax - view.yMin),
+      };
+    }
+
+    spectrumPlot.addEventListener('pointerdown', (event) => {
+      if (!currentSpectrum || !plotGeometry) return;
+      if (event.button !== 0 && event.button !== 1) return;
+      if (event.button === 1) event.preventDefault();
+      spectrumPlot.setPointerCapture(event.pointerId);
+      const point = pointerToPlot(event);
+      dragStart = {
+        clientX: event.clientX,
+        clientY: event.clientY,
+        plotX: point.x,
+        plotY: point.y,
+        view: { ...spectrumView },
+        mode: event.button === 1 ? 'pan' : interactionMode,
+      };
+      if (dragStart.mode === 'pan') spectrumPlot.style.cursor = 'grabbing';
+    });
+    spectrumPlot.addEventListener('pointermove', (event) => {
+      if (!currentSpectrum || !plotGeometry) return;
+      if (dragStart) {
+        if (dragStart.mode === 'pan') {
+          const rect = spectrumPlot.getBoundingClientRect();
+          const xShift = -(event.clientX - dragStart.clientX) / rect.width * (dragStart.view.xMax - dragStart.view.xMin);
+          const yShift = (event.clientY - dragStart.clientY) / rect.height * (dragStart.view.yMax - dragStart.view.yMin);
+          const fullXMin = Math.min(...currentSpectrum.x);
+          const fullXMax = Math.max(...currentSpectrum.x);
+          const xSpan = dragStart.view.xMax - dragStart.view.xMin;
+          let nextXMin = dragStart.view.xMin + xShift;
+          let nextXMax = dragStart.view.xMax + xShift;
+          if (nextXMin < fullXMin) { nextXMin = fullXMin; nextXMax = fullXMin + xSpan; }
+          if (nextXMax > fullXMax) { nextXMax = fullXMax; nextXMin = fullXMax - xSpan; }
+          spectrumView = {
+            xMin: nextXMin,
+            xMax: nextXMax,
+            yMin: dragStart.view.yMin + yShift,
+            yMax: dragStart.view.yMax + yShift,
+          };
+          renderSpectrum();
+        } else {
+          const point = pointerToPlot(event);
+          renderSpectrum();
+          spectrumPlot.appendChild(svgElement('rect', {
+            x: Math.min(dragStart.plotX, point.x),
+            y: Math.min(dragStart.plotY, point.y),
+            width: Math.abs(point.x - dragStart.plotX),
+            height: Math.abs(point.y - dragStart.plotY),
+            fill: 'rgba(11, 99, 164, .14)',
+            stroke: '#0b63a4',
+            'stroke-width': '2',
+            'stroke-dasharray': '6 4',
+            'pointer-events': 'none',
+          }));
+        }
+        return;
+      }
+      const rect = spectrumPlot.getBoundingClientRect();
+      const svgX = (event.clientX - rect.left) * 900 / rect.width;
+      if (svgX < plotGeometry.margin.left || svgX > 900 - plotGeometry.margin.right) return;
+      const xValue = plotGeometry.xMin + (svgX - plotGeometry.margin.left) / (900 - plotGeometry.margin.left - plotGeometry.margin.right) * (plotGeometry.xMax - plotGeometry.xMin);
+      let nearest = 0;
+      currentSpectrum.x.forEach((value, index) => {
+        if (Math.abs(value - xValue) < Math.abs(currentSpectrum.x[nearest] - xValue)) nearest = index;
+      });
+      spectrumTooltip.textContent = `Raman shift: ${currentSpectrum.x[nearest].toFixed(3)} ${currentSpectrum.x_units || ''} · Intensity: ${plotGeometry.yValues[nearest].toLocaleString(undefined, { maximumFractionDigits: 3 })}`;
+    });
+    spectrumPlot.addEventListener('pointerup', (event) => {
+      if (dragStart && dragStart.mode === 'zoom') {
+        const point = pointerToPlot(event);
+        if (Math.abs(point.x - dragStart.plotX) > 8 && Math.abs(point.y - dragStart.plotY) > 8) {
+          const first = plotToData(dragStart.plotX, dragStart.plotY, dragStart.view);
+          const second = plotToData(point.x, point.y, dragStart.view);
+          spectrumView = {
+            xMin: Math.min(first.x, second.x),
+            xMax: Math.max(first.x, second.x),
+            yMin: Math.min(first.y, second.y),
+            yMax: Math.max(first.y, second.y),
+          };
+        }
+        renderSpectrum();
+      }
+      dragStart = null;
+      spectrumPlot.style.cursor = interactionMode === 'zoom' ? 'crosshair' : 'grab';
+    });
+    const endSpectrumDrag = () => { dragStart = null; spectrumPlot.style.cursor = interactionMode === 'zoom' ? 'crosshair' : 'grab'; renderSpectrum(); };
+    spectrumPlot.addEventListener('pointercancel', endSpectrumDrag);
+    spectrumPlot.addEventListener('auxclick', (event) => {
+      if (event.button === 1) event.preventDefault();
+    });
+    spectrumPlot.addEventListener('pointerleave', () => { if (!dragStart) spectrumTooltip.textContent = ''; });
+
+    function setSuggestedValue(fieldName, value) {
+      if (!value) return false;
+      const field = form.elements[fieldName];
+      if (!field || (field.value || '').toString().trim()) return false;
+      if (field.tagName === 'SELECT' && !Array.from(field.options).some((option) => option.value === value)) {
+        return false;
+      }
+      field.value = value;
+      field.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
+    }
+
+    function applyMetadataSuggestions(suggestions) {
+      let applied = 0;
+      ['technique', 'measurement_type', 'measurement_date', 'material_system', 'instrument',
+       'laser_wavelength', 'integration_time', 'accumulations', 'detector',
+       'detector_model', 'detector_temperature', 'spectrometer', 'grating',
+       'binning_start', 'binning_length', 'spectral_start', 'spectral_range',
+       'x_units', 'lpf_angle', 'bpf_angle', 'display_mode', 'live_focus',
+       'z_position'].forEach((fieldName) => {
+        if (setSuggestedValue(fieldName, suggestions[fieldName])) applied += 1;
+      });
+      if (suggestions.sample_id && !sampleInput.value.trim() && !sampleHidden.value) {
+        sampleInput.value = suggestions.sample_id;
+        sampleHidden.value = suggestions.sample_id;
+        applied += 1;
+      }
+      autofillStatus.textContent = applied
+        ? `Auto-filled ${applied} high-confidence field${applied === 1 ? '' : 's'}. Please review before importing.`
+        : 'No high-confidence metadata was found; uncertain fields were left blank.';
+    }
+
+    function fileIdentity(file) {
+      return `${file.webkitRelativePath || file.relativePath || file.name}|${file.size}|${file.lastModified}`;
+    }
+
+    function confirmMaterialProposal(file, proposal) {
+      if (!proposal?.material_system) return null;
+      const key = fileIdentity(file);
+      if (materialProposalDecisions.has(key)) return materialProposalDecisions.get(key);
+      const confidence = Math.round(Number(proposal.confidence || 0) * 100);
+      const message = [
+        `Proposed material system for ${file.name}:`,
+        '',
+        `${proposal.material_system} (${confidence}% confidence)`,
+        '',
+        ...(proposal.evidence || []).map((item) => `• ${item}`),
+        '',
+        'Online reference:',
+        ...(proposal.sources || []),
+        '',
+        'Assign this material system? You can change it later in Edit metadata.',
+      ].join('\n');
+      const decision = window.confirm(message) ? proposal.material_system : null;
+      materialProposalDecisions.set(key, decision);
+      return decision;
+    }
+
+    async function inspectFileMetadata(file) {
+      const inspectionForm = new FormData();
+      inspectionForm.append('file', file, file.name);
+      const relativePath = file.webkitRelativePath || file.relativePath || '';
+      if (relativePath) inspectionForm.append('relative_path', relativePath);
+      const response = await fetch('/files/inspect', { method: 'POST', body: inspectionForm });
+      const result = await response.json();
+      if (!response.ok) throw new Error('Inspection failed');
+      return result;
+    }
+
+    async function inspectSelectedFile(file) {
+      if (!file) return;
+      try {
+        const result = await inspectFileMetadata(file);
+        if (selectedFiles.length === 1) applyMetadataSuggestions(result.suggested_metadata || {});
+        else autofillStatus.textContent = `Each of the ${selectedFiles.length} files will be inspected and filled independently during import.`;
+        if (selectedFiles.length === 1 && !form.elements.material_system.value.trim()) {
+          const confirmed = confirmMaterialProposal(file, result.material_system_proposal);
+          if (confirmed) form.elements.material_system.value = confirmed;
+        }
+      } catch (_error) {
+        autofillStatus.textContent = 'Automatic metadata inspection was unavailable; fields were left unchanged.';
+      }
+    }
+
+    function selectFile(fileOrList) {
+      if (!fileOrList) {
+        selectedFiles = [];
+      } else if (fileOrList instanceof FileList || Array.isArray(fileOrList)) {
+        selectedFiles = Array.from(fileOrList);
+      } else {
+        selectedFiles = [fileOrList];
+      }
+      if (selectedFiles.length === 0) {
+        fileLabel.textContent = "Drop a file here or choose a file";
+      } else if (selectedFiles.length === 1) {
+        fileLabel.textContent = `${selectedFiles[0].name} (${selectedFiles[0].size.toLocaleString()} bytes)`;
+      } else {
+        fileLabel.textContent = `${selectedFiles.length} files selected`;
+      }
+      if (selectedFiles.length > 0) {
+        renderFileList(selectedFiles);
+        const metadataFile = selectedFiles.find((file) => /\.(txt|log|csv)$/i.test(file.name)) || selectedFiles[0];
+        inspectSelectedFile(metadataFile);
+        document.querySelector('#preview-area').style.display = '';
+      } else {
+        document.querySelector('#preview-area').style.display = 'none';
+        autofillStatus.textContent = '';
+      }
+    }
+
+    function renderFileList(files) {
+      const preview = document.querySelector('#preview-content');
+      const list = document.createElement('div');
+      list.style.marginTop = '.5rem';
+      const header = document.createElement('div');
+      header.textContent = `${files.length} file(s) found in folder:`;
+      header.style.fontWeight = 700;
+      list.appendChild(header);
+      const root = { directories: new Map(), files: [] };
+      files.forEach((file, index) => {
+        const parts = (file.webkitRelativePath || file.relativePath || file.name).split('/').filter(Boolean);
+        const filename = parts.pop() || file.name;
+        let node = root;
+        parts.forEach((part) => {
+          if (!node.directories.has(part)) node.directories.set(part, { directories: new Map(), files: [] });
+          node = node.directories.get(part);
+        });
+        node.files.push({ file, index, filename });
+      });
+      const renderTreeNode = (node, parent) => {
+        const fileListElement = document.createElement('ul');
+        node.files.forEach(({ file, index, filename }) => {
+          const item = document.createElement('li');
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox'; checkbox.checked = true; checkbox.dataset.idx = index; checkbox.name = 'preview-select';
+          const label = document.createElement('label');
+          label.append(checkbox, document.createTextNode(` ${filename} (${file.size.toLocaleString()} bytes)`));
+          item.appendChild(label); fileListElement.appendChild(item);
+        });
+        if (node.files.length) parent.appendChild(fileListElement);
+        node.directories.forEach((child, directoryName) => {
+          const details = document.createElement('details'); details.open = true;
+          const summary = document.createElement('summary');
+          const folderCheckbox = document.createElement('input'); folderCheckbox.type = 'checkbox'; folderCheckbox.checked = true;
+          summary.append(folderCheckbox, document.createTextNode(` ${directoryName}`));
+          const children = document.createElement('div'); renderTreeNode(child, children);
+          folderCheckbox.addEventListener('click', (event) => event.stopPropagation());
+          folderCheckbox.addEventListener('change', () => {
+            children.querySelectorAll('input[name="preview-select"], summary > input[type="checkbox"]').forEach((checkbox) => { checkbox.checked = folderCheckbox.checked; });
+          });
+          details.append(summary, children); parent.appendChild(details);
+        });
+      };
+      const tree = document.createElement('div'); tree.className = 'folder-tree';
+      renderTreeNode(root, tree); list.appendChild(tree);
+      if (files.length > 1) {
+        const note = document.createElement('p'); note.className = 'batch-metadata-note';
+        note.textContent = 'Batch metadata: values entered below apply to every selected file. File-specific metadata is still extracted independently.';
+        list.appendChild(note);
+      }
+      preview.innerHTML = '';
+      preview.appendChild(list);
+    }
+
+    // IndexedDB helpers to persist a directory handle
+    function openDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open('mdc_handles', 1);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('handles')) db.createObjectStore('handles');
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function storeHandle(key, handle) {
+      const db = await openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('handles', 'readwrite');
+        tx.objectStore('handles').put(handle, key);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function getStoredHandle(key) {
+      const db = await openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('handles', 'readonly');
+        const req = tx.objectStore('handles').get(key);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function getDirectoryPermission(handle, request = false) {
+      if (!handle || typeof handle.queryPermission !== 'function') return 'unsupported';
+      const options = { mode: 'read' };
+      let permission = await handle.queryPermission(options);
+      if (permission === 'prompt' && request && typeof handle.requestPermission === 'function') {
+        permission = await handle.requestPermission(options);
+      }
+      return permission;
+    }
+
+    async function updateRememberedFolderIndicator(handle, requestPermission = false) {
+      if (!handle) {
+        rememberedFolder.textContent = 'No remembered folder.';
+        rememberedFolder.dataset.state = 'none';
+        return;
+      }
+
+      const permission = await getDirectoryPermission(handle, requestPermission).catch(() => 'denied');
+      const folderName = handle.name || 'selected folder';
+      if (permission === 'granted') {
+        rememberedFolder.textContent = `Remembered folder: ${folderName}`;
+        rememberedFolder.dataset.state = 'granted';
+      } else if (permission === 'unsupported') {
+        rememberedFolder.textContent = `Selected folder: ${folderName}`;
+        rememberedFolder.dataset.state = 'unsupported';
+      } else {
+        rememberedFolder.textContent = `Remembered folder: ${folderName} (open the folder to renew access)`;
+        rememberedFolder.dataset.state = permission;
+      }
+    }
+
+    // Recursively collect files from a directory handle
+    async function collectFilesFromDirectory(dirHandle, path = '') {
+      const files = [];
+      for await (const [name, handle] of dirHandle.entries()) {
+        if (handle.kind === 'file') {
+          const file = await handle.getFile();
+          Object.defineProperty(file, 'relativePath', {
+            value: `${path}${name}`,
+            configurable: true,
+          });
+          files.push(file);
+        } else if (handle.kind === 'directory') {
+          const nested = await collectFilesFromDirectory(handle, `${path}${name}/`);
+          files.push(...nested);
+        }
+      }
+      return files;
+    }
+
+    // Open the directory picker, prefer reopening the last-watched folder when possible
+    async function openFolderPickerAndSelect() {
+      // Feature-detect the File System Access API
+      if (!window.showDirectoryPicker) {
+        // Fallback for browsers without the File System Access API.
+        try { folderInput.click(); } catch (e) {}
+        return;
+      }
+      try {
+        const last = await getStoredHandle('lastDirectory').catch(() => null);
+        if (last) await updateRememberedFolderIndicator(last, true);
+        let dirHandle;
+        try {
+          if (last) {
+            // Try to show picker starting at the previously-stored handle
+            dirHandle = await window.showDirectoryPicker({ startIn: last });
+          } else {
+            dirHandle = await window.showDirectoryPicker();
+          }
+        } catch (err) {
+          // If showDirectoryPicker failed with the stored handle, open a plain picker
+          dirHandle = await window.showDirectoryPicker();
+        }
+        if (!dirHandle) {
+          return;
+        }
+        // Persist handle for next time
+        await storeHandle('lastDirectory', dirHandle).catch(() => {});
+        await updateRememberedFolderIndicator(dirHandle);
+        // Collect files and select
+        const files = await collectFilesFromDirectory(dirHandle);
+        if (files.length) selectFile(files);
+      } catch (err) {
+        if (err?.name === 'AbortError') return;
+        console.warn('Directory picker failed:', err);
+        try { folderInput.click(); } catch (e) {}
+      }
+    }
+
+    // Wire the new button
+    const chooseFilesButton = document.querySelector('#choose-files-button');
+    const openFolderButton = document.querySelector('#open-folder-button');
+    if (chooseFilesButton) chooseFilesButton.addEventListener('click', () => input.click());
+    if (openFolderButton) openFolderButton.addEventListener('click', () => {
+      folderInput.value = '';
+      openFolderPickerAndSelect();
+    });
+
+    const techniqueOptions = {
+      "Raman spectroscopy": [
+        "Single spectrum",
+        "Point series",
+        "Line scan",
+        "Mapping",
+        "Time series",
+        "Temperature-dependent Raman",
+        "Polarization-dependent Raman",
+        "Power-dependent Raman",
+        "In-situ / operando",
+        "Other…",
+      ],
+      "Photoluminescence": ["Single spectrum", "Mapping", "Temperature series", "Other…"],
+      "AFM": ["Topography", "Phase", "Force curve", "Other…"],
+      "SEM": ["Image", "EDS", "EBSD", "Other…"],
+      "Default": ["Other…"],
+    };
+
+    function populateMeasurementTypes(technique) {
+      const options = techniqueOptions[technique] || techniqueOptions['Default'];
+      measurementTypeSelect.replaceChildren();
+      options.forEach((opt) => {
+        const el = document.createElement('option');
+        el.value = opt;
+        el.textContent = opt;
+        measurementTypeSelect.appendChild(el);
+      });
+      measurementTypeLabel.style.display = options.length ? '' : 'none';
+      experimentalDetails.style.display = technique ? '' : 'none';
+      // show technique-specific blocks
+      detailsRaman.style.display = technique === 'Raman spectroscopy' ? '' : 'none';
+    }
+
+    techniqueSelect.addEventListener('change', (e) => {
+      const value = e.target.value;
+      if (!value) {
+        measurementTypeLabel.style.display = 'none';
+        experimentalDetails.style.display = 'none';
+      } else {
+        populateMeasurementTypes(value);
+      }
+    });
+
+    // Sample typeahead logic
+    const sampleInput = document.querySelector('#sample-input');
+    const sampleHidden = document.querySelector('#sample-hidden');
+    const sampleSuggestions = document.querySelector('#sample-suggestions');
+    const newSampleFields = document.querySelector('#new-sample-fields');
+    const newSampleId = document.querySelector('#new-sample-id');
+    const newSampleMaterial = document.querySelector('#new-sample-material');
+    const newSampleNotes = document.querySelector('#new-sample-notes');
+
+    async function fetchSamples() {
+      try {
+        const res = await fetch('/samples');
+        window.__MDC_samples = await res.json();
+      } catch (_){
+        window.__MDC_samples = [];
+      }
+    }
+
+    let sampleTimer = null;
+    async function searchSamples(q) {
+      try {
+        const res = await fetch('/samples?q=' + encodeURIComponent(q));
+        return await res.json();
+      } catch (_){ return []; }
+    }
+
+    function clearSuggestions() { sampleSuggestions.innerHTML = ''; }
+
+    // Presets
+    async function fetchPresets() {
+      try {
+        const res = await fetch('/presets');
+        const presets = await res.json();
+        while (presetSelect.options.length > 1) presetSelect.remove(1);
+        presets.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.preset_id;
+          opt.textContent = p.name;
+          opt.dataset.config = p.config;
+          presetSelect.appendChild(opt);
+        });
+      } catch (err) {}
+    }
+
+    presetSelect.addEventListener('change', (e) => {
+      const opt = e.target.selectedOptions[0];
+      if (!opt || !opt.dataset || !opt.dataset.config) return;
+      try {
+        const cfg = JSON.parse(opt.dataset.config);
+        Object.entries(cfg).forEach(([k,v]) => {
+          const el = form.elements[k];
+          if (el) el.value = v;
+        });
+      } catch (_){ }
+    });
+
+    savePresetButton.addEventListener('click', async () => {
+      const name = prompt('Preset name');
+      if (!name) return;
+      const config = {
+        instrument: (form.elements['instrument']?.value || ''),
+        objective: (form.elements['objective']?.value || ''),
+        laser_wavelength: (form.elements['laser_wavelength']?.value || ''),
+        laser_power: (form.elements['laser_power']?.value || ''),
+        integration_time: (form.elements['integration_time']?.value || ''),
+        accumulations: (form.elements['accumulations']?.value || ''),
+      };
+      const payload = { name, config };
+      const res = await fetch('/presets', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      if (!res.ok) { alert('Failed to save preset'); return; }
+      await fetchPresets();
+      alert('Preset saved');
+    });
+
+    // legacy select removed; typeahead handles new-sample creation
+    sampleInput.addEventListener('input', (e) => {
+      const q = e.target.value.trim();
+      sampleHidden.value = '';
+      newSampleFields.style.display = 'none';
+      if (sampleTimer) clearTimeout(sampleTimer);
+      if (!q) { clearSuggestions(); return; }
+      sampleTimer = setTimeout(async () => {
+        const items = await searchSamples(q);
+        clearSuggestions();
+        const list = document.createElement('div');
+        list.style.background = '#fff'; list.style.border = '1px solid #cbd5df'; list.style.position='absolute'; list.style.zIndex=50; list.style.width='100%';
+        if (items.length === 0) {
+          const opt = document.createElement('div'); opt.textContent = `Create sample "${q}"`; opt.style.padding='8px'; opt.style.cursor='pointer'; opt.onclick = () => {
+            newSampleFields.style.display = ''; newSampleId.value = q; sampleHidden.value = '__new'; sampleInput.value = q; clearSuggestions();
+          }; list.appendChild(opt);
+        } else {
+          items.forEach(s => {
+            const opt = document.createElement('div'); opt.textContent = `${s.sample_id} ${s.material? '— '+s.material : ''}`; opt.style.padding='8px'; opt.style.cursor='pointer';
+            opt.onclick = () => { sampleHidden.value = s.sample_id; sampleInput.value = s.sample_id; newSampleFields.style.display = 'none'; clearSuggestions(); };
+            list.appendChild(opt);
+          });
+          const createOpt = document.createElement('div'); createOpt.textContent = `Create sample "${q}"`; createOpt.style.padding='8px'; createOpt.style.cursor='pointer'; createOpt.onclick = () => { newSampleFields.style.display=''; newSampleId.value=q; sampleHidden.value='__new'; sampleInput.value=q; clearSuggestions(); };
+          list.appendChild(createOpt);
+        }
+        sampleSuggestions.appendChild(list);
+      }, 250);
+    });
+
+    async function createSampleIfNeeded() {
+      if (!sampleHidden.value && !sampleInput.value.trim()) return;
+      if (!sampleHidden.value && sampleInput.value.trim()) {
+        const typedSampleId = sampleInput.value.trim();
+        const matches = await searchSamples(typedSampleId);
+        const exactMatch = matches.find(
+          (sample) => sample.sample_id.toLowerCase() === typedSampleId.toLowerCase()
+        );
+        if (exactMatch) {
+          sampleHidden.value = exactMatch.sample_id;
+        } else {
+          sampleHidden.value = '__new';
+          newSampleId.value = typedSampleId;
+        }
+      }
+      if (sampleHidden.value === '__new') {
+        const sid = (newSampleId.value || '').trim();
+        if (!sid) throw new Error('Enter a sample ID.');
+        const payload = { sample_id: sid, material: (newSampleMaterial.value || '').trim(), notes: (newSampleNotes.value || '').trim() };
+        const res = await fetch('/samples', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          throw new Error(j.detail?.message || 'Failed to create sample');
+        }
+        const created = await res.json();
+        sampleHidden.value = created.sample_id;
+      }
+      if (!sampleHidden.value) throw new Error('Enter or select a sample ID.');
+    }
+
+    async function fetchOperators() {
+      try {
+        const response = await fetch('/operators');
+        if (!response.ok) return;
+        const operators = await response.json();
+        operatorList.replaceChildren(...operators.map((operator) => new Option(operator, operator)));
+        if (!operatorInput.value.trim() && operators.length) operatorInput.value = operators[0];
+      } catch (_error) {
+        // Operator remains a normal editable field if the list is unavailable.
+      }
+    }
+
+    function getImportEntries() {
+      const entries = {};
+      ["technique", "measurement_type", "sample_id", "measurement_date", "material_system", "instrument", "operator", "notes", "laser_wavelength", "laser_power", "power_at_sample", "objective", "integration_time", "accumulations", "detector", "detector_model", "detector_temperature", "spectrometer", "grating", "binning_start", "binning_length", "spectral_start", "spectral_range", "x_units", "lpf_angle", "bpf_angle", "display_mode", "live_focus", "z_position"].forEach((name) => {
+        const element = form.elements[name];
+        if (!element) return;
+        const value = (element.value || '').toString().trim();
+        if (value) entries[name] = value;
+      });
+      return entries;
+    }
+
+    function getApiErrorMessage(result, fallback) {
+      const detail = result?.detail;
+      if (typeof detail === 'string') return detail;
+      if (detail?.message) return detail.message;
+      if (Array.isArray(detail)) {
+        return detail.map((error) => {
+          const field = Array.isArray(error.loc) ? error.loc[error.loc.length - 1] : 'field';
+          return `${field}: ${error.msg}`;
+        }).join('\n');
+      }
+      return fallback;
+    }
+
+    input.addEventListener("change", () => selectFile(input.files));
+    folderInput.addEventListener("change", () => {
+      const files = Array.from(folderInput.files || []);
+      selectFile(files);
+      if (files.length) {
+        const relativePath = files[0].webkitRelativePath || '';
+        const folderName = relativePath.split('/')[0] || 'selected folder';
+        rememberedFolder.textContent = `Selected folder: ${folderName} (${files.length} files)`;
+        rememberedFolder.dataset.state = 'granted';
+      }
+    });
     ["dragenter", "dragover"].forEach((eventName) => {
       dropZone.addEventListener(eventName, (event) => {
         event.preventDefault();
@@ -145,7 +1970,7 @@
       });
     });
     dropZone.addEventListener("drop", (event) => {
-      selectFile(event.dataTransfer.files[0]);
+      selectFile(event.dataTransfer.files);
     });
 
     function showStatus(message, type = "") {
@@ -153,67 +1978,456 @@
       status.className = type;
     }
 
+    function renderRecentImports() {
+      const query = recentSearch.value.trim().toLowerCase();
+      const technique = recentTechniqueFilter.value;
+      let files = allImportedFiles.filter((file) => {
+        const searchable = `${file.original_filename} ${file.sample_id || ''} ${file.material_system || ''} ${file.technique || ''}`.toLowerCase();
+        return (!query || searchable.includes(query)) && (!technique || file.technique === technique);
+      });
+      const sorters = {
+        newest: (a, b) => b.imported_at.localeCompare(a.imported_at),
+        oldest: (a, b) => a.imported_at.localeCompare(b.imported_at),
+        filename: (a, b) => a.original_filename.localeCompare(b.original_filename),
+        sample: (a, b) => (a.sample_id || '').localeCompare(b.sample_id || ''),
+      };
+      files.sort(sorters[recentSort.value]);
+
+      const grouped = new Map();
+      files.forEach((file) => {
+        const date = file.measurement_date || file.imported_at.slice(0, 10);
+        const material = file.material_system || 'Unspecified material';
+        const key = importsGroupBy.value === 'material'
+          ? `material|${material}`
+          : `sample-date|${file.sample_id || 'Unassigned'}|${date}`;
+        const label = importsGroupBy.value === 'material'
+          ? material
+          : `${file.sample_id || 'Unassigned'} — ${date}`;
+        if (!grouped.has(key)) grouped.set(key, { label, files: [] });
+        grouped.get(key).files.push(file);
+      });
+      const groups = Array.from(grouped.values());
+      const pageCount = Math.max(1, Math.ceil(groups.length / recentPageSize));
+      recentPage = Math.min(recentPage, pageCount);
+      const pageGroups = groups.slice((recentPage - 1) * recentPageSize, recentPage * recentPageSize);
+
+      fileList.replaceChildren();
+      if (!files.length) {
+        const empty = document.createElement('p');
+        empty.textContent = allImportedFiles.length ? 'No imports match these filters.' : 'No files imported yet.';
+        fileList.appendChild(empty);
+      }
+      pageGroups.forEach((group, groupIndex) => {
+        const batch = document.createElement('details');
+        batch.className = 'import-batch';
+        batch.open = groupIndex === 0;
+        const summary = document.createElement('summary');
+        summary.textContent = `${group.label} · ${group.files.length} file${group.files.length === 1 ? '' : 's'}`;
+        summary.title = group.files.length > 3
+          ? 'Click to open. Double-click the arrow to show every file.'
+          : 'Click to open or close this group.';
+        const entries = document.createElement('div');
+        entries.className = 'import-batch-list';
+        if (group.files.length > 3) {
+          entries.classList.add('scrollable');
+          entries.setAttribute('aria-label', `${group.label}: scroll to view all ${group.files.length} files`);
+        }
+        summary.addEventListener('dblclick', (event) => {
+          event.preventDefault();
+          batch.open = true;
+          entries.classList.remove('scrollable');
+          entries.setAttribute('aria-label', `${group.label}: all ${group.files.length} files shown`);
+          summary.title = 'All files are shown. Click once to close this group.';
+        });
+        batch.addEventListener('toggle', () => {
+          if (batch.open || group.files.length <= 3) return;
+          entries.classList.add('scrollable');
+          entries.setAttribute('aria-label', `${group.label}: scroll to view all ${group.files.length} files`);
+          summary.title = 'Click to open. Double-click the arrow to show every file.';
+        });
+        group.files.forEach((file) => {
+          const entry = document.createElement('div');
+          entry.className = 'import-entry';
+          const button = document.createElement('button');
+          button.type = 'button';
+          if (currentImportedFile?.file_id === file.file_id) button.classList.add('active');
+          const filename = document.createElement('strong');
+          filename.textContent = file.original_filename;
+          const metadata = document.createElement('small');
+          metadata.textContent = `${file.technique || 'Unknown technique'} · ${new Date(file.imported_at).toLocaleString()}`;
+          button.append(filename, metadata);
+          button.addEventListener('click', () => showImportedSpectrum(file, button));
+
+          const menu = document.createElement('details');
+          menu.className = 'import-actions-menu';
+          let closeActionsTimer = null;
+          const cancelActionsClose = () => {
+            if (closeActionsTimer !== null) window.clearTimeout(closeActionsTimer);
+            closeActionsTimer = null;
+          };
+          const scheduleActionsClose = () => {
+            cancelActionsClose();
+            closeActionsTimer = window.setTimeout(() => {
+              menu.open = false;
+              closeActionsTimer = null;
+            }, 300);
+          };
+          menu.addEventListener('pointerenter', cancelActionsClose);
+          menu.addEventListener('pointerleave', scheduleActionsClose);
+          menu.addEventListener('toggle', () => {
+            if (!menu.open) return;
+            document.querySelectorAll('.import-actions-menu[open]').forEach((otherMenu) => {
+              if (otherMenu !== menu) otherMenu.open = false;
+            });
+          });
+          const menuSummary = document.createElement('summary');
+          menuSummary.textContent = '⋯';
+          menuSummary.setAttribute('aria-label', `Actions for ${file.original_filename}`);
+          const actions = document.createElement('div');
+          actions.className = 'history-actions';
+          actions.addEventListener('pointerenter', cancelActionsClose);
+          const editButton = document.createElement('button');
+          editButton.type = 'button';
+          editButton.textContent = 'Edit metadata';
+          editButton.addEventListener('click', () => editImportedFile(file));
+          const deleteButton = document.createElement('button');
+          deleteButton.type = 'button';
+          deleteButton.className = 'delete-import';
+          deleteButton.textContent = 'Remove';
+          deleteButton.addEventListener('click', () => removeImportedFile(file));
+          actions.append(editButton, deleteButton);
+          menu.append(menuSummary, actions);
+          entry.append(button, menu);
+          entries.appendChild(entry);
+        });
+        const groupActions = document.createElement('div');
+        groupActions.className = 'import-group-actions';
+        const removeGroupButton = document.createElement('button');
+        removeGroupButton.type = 'button';
+        removeGroupButton.textContent = 'Remove group';
+        removeGroupButton.addEventListener('click', () => removeImportedGroup(group));
+        groupActions.appendChild(removeGroupButton);
+        batch.append(summary, groupActions, entries);
+        fileList.appendChild(batch);
+      });
+      recentCount.textContent = `${files.length} file${files.length === 1 ? '' : 's'} · page ${recentPage} of ${pageCount}`;
+      recentPrevious.disabled = recentPage <= 1;
+      recentNext.disabled = recentPage >= pageCount;
+    }
+
     async function refreshFiles() {
       try {
-        const response = await fetch("/files");
-        const files = await response.json();
-        fileList.replaceChildren();
-        if (!files.length) {
-          const row = fileList.insertRow();
-          const cell = row.insertCell();
-          cell.colSpan = 4;
-          cell.textContent = "No files imported yet.";
-          return;
-        }
-        files.slice(0, 10).forEach((file) => {
-          const row = fileList.insertRow();
-          [file.original_filename, file.sample_id || "-", file.technique || "-", new Date(file.imported_at).toLocaleString()]
-            .forEach((value, index) => {
-              const cell = row.insertCell();
-              cell.textContent = value;
-              if (index === 3) cell.className = "optional-column";
-            });
+        const response = await fetch('/files');
+        allImportedFiles = await response.json();
+        while (analysisReference.options.length > 2) analysisReference.remove(2);
+        allImportedFiles.filter((file) => /(?:sio2|silicon|\bref(?:erence)?\b)/i.test(file.original_filename)).forEach((file) => {
+          const option = document.createElement('option');
+          option.value = file.file_id;
+          option.textContent = file.original_filename;
+          analysisReference.appendChild(option);
         });
+        const selectedTechnique = recentTechniqueFilter.value;
+        const techniques = [...new Set(allImportedFiles.map((file) => file.technique).filter(Boolean))].sort();
+        recentTechniqueFilter.replaceChildren(new Option('All techniques', ''));
+        techniques.forEach((value) => recentTechniqueFilter.add(new Option(value, value)));
+        recentTechniqueFilter.value = techniques.includes(selectedTechnique) ? selectedTechnique : '';
+        renderRecentImports();
       } catch (_error) {
-        fileList.innerHTML = "<tr><td colspan='4'>Could not load imports.</td></tr>";
+        fileList.textContent = 'Could not load imports.';
       }
+    }
+
+    [recentSearch, recentTechniqueFilter, recentSort, importsGroupBy].forEach((control) => {
+      control.addEventListener('input', () => { recentPage = 1; renderRecentImports(); });
+    });
+    recentPrevious.addEventListener('click', () => { if (recentPage > 1) { recentPage -= 1; renderRecentImports(); } });
+    recentNext.addEventListener('click', () => { recentPage += 1; renderRecentImports(); });
+
+    async function editImportedFile(file) {
+      editingImportedFile = file;
+      document.querySelector('#edit-metadata-filename').textContent = file.original_filename;
+      document.querySelector('#edit-technique').value = file.technique || '';
+      document.querySelector('#edit-sample-id').value = file.sample_id || '';
+      document.querySelector('#edit-measurement-date').value = file.measurement_date || '';
+      document.querySelector('#edit-material-system').value = file.material_system || '';
+      document.querySelector('#edit-instrument').value = file.instrument || '';
+      document.querySelector('#edit-operator').value = file.operator || '';
+      document.querySelector('#edit-notes').value = file.notes || '';
+      const details = file.experimental_details || {};
+      editableExperimentalFields.forEach((fieldName) => {
+        document.querySelector(`#edit-${fieldName.replaceAll('_', '-')}`).value = details[fieldName] || '';
+      });
+      editMetadataError.textContent = '';
+      editMetadataModal.hidden = false;
+      document.querySelector('#edit-technique').focus();
+      try {
+        const response = await fetch(`/files/${encodeURIComponent(file.file_id)}/metadata-suggestions`);
+        if (!response.ok || editingImportedFile?.file_id !== file.file_id) return;
+        const inspection = await response.json();
+        const suggestions = inspection.suggested_metadata || {};
+        const commonFields = {
+          technique: '#edit-technique',
+          sample_id: '#edit-sample-id',
+          measurement_date: '#edit-measurement-date',
+          material_system: '#edit-material-system',
+          instrument: '#edit-instrument',
+        };
+        Object.entries(commonFields).forEach(([fieldName, selector]) => {
+          const field = document.querySelector(selector);
+          if (!field.value.trim() && suggestions[fieldName]) field.value = suggestions[fieldName];
+        });
+        editableExperimentalFields.forEach((fieldName) => {
+          const field = document.querySelector(`#edit-${fieldName.replaceAll('_', '-')}`);
+          const measuredRangeField = fieldName === 'spectral_start' || fieldName === 'spectral_range';
+          if ((!field.value.trim() || measuredRangeField) && suggestions[fieldName]) field.value = suggestions[fieldName];
+        });
+        const materialField = document.querySelector('#edit-material-system');
+        if (!materialField.value.trim() && inspection.material_system_proposal) {
+          const proposal = inspection.material_system_proposal;
+          const confidence = Math.round(Number(proposal.confidence || 0) * 100);
+          const confirmed = window.confirm([
+            `Proposed material system for ${file.original_filename}:`, '',
+            `${proposal.material_system} (${confidence}% confidence)`, '',
+            ...(proposal.evidence || []).map((item) => `• ${item}`), '',
+            'Online reference:', ...(proposal.sources || []), '',
+            'Assign this proposal? You can change it before saving.',
+          ].join('\n'));
+          if (confirmed) materialField.value = proposal.material_system;
+        }
+      } catch (_error) {
+        // Existing saved metadata remains editable if inspection is unavailable.
+      }
+    }
+
+    document.querySelector('#cancel-metadata-edit').addEventListener('click', () => {
+      editMetadataModal.hidden = true;
+      editingImportedFile = null;
+    });
+
+    document.querySelector('#save-metadata-edit').addEventListener('click', async () => {
+      if (!editingImportedFile) return;
+      const payload = {
+        technique: document.querySelector('#edit-technique').value.trim(),
+        sample_id: document.querySelector('#edit-sample-id').value.trim(),
+        measurement_date: document.querySelector('#edit-measurement-date').value,
+        material_system: document.querySelector('#edit-material-system').value.trim(),
+        instrument: document.querySelector('#edit-instrument').value.trim(),
+        operator: document.querySelector('#edit-operator').value.trim(),
+        notes: document.querySelector('#edit-notes').value.trim(),
+        experimental_details: Object.fromEntries(editableExperimentalFields.map((fieldName) => [
+          fieldName,
+          document.querySelector(`#edit-${fieldName.replaceAll('_', '-')}`).value.trim(),
+        ])),
+      };
+      const response = await fetch(`/files/${encodeURIComponent(editingImportedFile.file_id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        editMetadataError.textContent = getApiErrorMessage(result, 'Could not update the import.');
+        return;
+      }
+      showStatus(`Updated metadata for ${editingImportedFile.original_filename}.`, 'success');
+      editMetadataModal.hidden = true;
+      editingImportedFile = null;
+      await refreshFiles();
+    });
+
+    async function removeImportedFile(file) {
+      if (!confirm(`Remove ${file.original_filename} from recent imports? The immutable raw file will be retained.`)) return;
+      const response = await fetch(`/files/${encodeURIComponent(file.file_id)}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        showStatus(getApiErrorMessage(result, 'Could not remove the import.'), 'error');
+        return;
+      }
+      if (currentImportedFile?.file_id === file.file_id) {
+        currentSpectrum = null;
+        currentImportedFile = null;
+        spectrumPlot.hidden = true;
+        importedImage.hidden = true;
+        importedImage.removeAttribute('src');
+        mappingPlot.hidden = true;
+        spectrumToolbar.hidden = true;
+        spectrumHelp.hidden = true;
+        ramanAnalysis.hidden = true;
+        analysisResults.replaceChildren();
+        spectrumMetadata.replaceChildren();
+        spectrumMessage.textContent = 'Select an imported spectrum or image from the left panel.';
+      }
+      showStatus(`Removed ${file.original_filename} from recent imports. Raw data was retained.`, 'success');
+      await refreshFiles();
+    }
+
+    async function removeImportedGroup(group) {
+      const count = group.files.length;
+      if (!confirm(`Remove all ${count} files in ${group.label} from Imports? The immutable raw files will be retained.`)) return;
+      const response = await fetch('/files/archive-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file_ids: group.files.map((file) => file.file_id) }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        showStatus(getApiErrorMessage(result, 'Could not remove the group.'), 'error');
+        return;
+      }
+      if (group.files.some((file) => file.file_id === currentImportedFile?.file_id)) {
+        currentSpectrum = null;
+        currentImportedFile = null;
+        spectrumPlot.hidden = true;
+        spectrumMetadata.replaceChildren();
+        spectrumMessage.textContent = 'Select an imported spectrum or image from the left panel.';
+      }
+      showStatus(`Removed ${result.archived_count} files from ${group.label}. Raw data was retained.`, 'success');
+      await refreshFiles();
     }
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
-      if (!selectedFile) {
+      if (selectedFiles.length === 0) {
         showStatus("Choose a file before importing.", "error");
         return;
       }
 
-      const data = new FormData();
-      data.append("file", selectedFile, selectedFile.name);
-      ["technique", "sample_id", "measurement_date", "instrument", "operator", "notes"].forEach((name) => {
-        const value = form.elements[name].value.trim();
-        if (value) data.append(name, value);
-      });
-
-      submitButton.disabled = true;
-      showStatus("Importing...");
-      try {
-        const response = await fetch("/files/import", { method: "POST", body: data });
-        const result = await response.json();
-        if (!response.ok) {
-          const detail = result.detail;
-          throw new Error(detail?.message || "The import was rejected.");
-        }
-        showStatus(`Imported ${result.original_filename}\nSHA-256: ${result.sha256}`, "success");
-        form.reset();
-        selectFile(null);
-        await refreshFiles();
-      } catch (error) {
-        showStatus(error.message, "error");
-      } finally {
-        submitButton.disabled = false;
+      // Build review content
+      const checkedIndexes = Array.from(document.querySelectorAll('input[name="preview-select"]:checked'))
+        .map((checkbox) => Number(checkbox.dataset.idx));
+      const filesToImport = checkedIndexes.length
+        ? checkedIndexes.map((index) => selectedFiles[index]).filter(Boolean)
+        : selectedFiles.length === 1 ? selectedFiles.slice() : [];
+      if (!filesToImport.length) {
+        showStatus('Select at least one file from the folder preview.', 'error');
+        return;
       }
+      const entries = getImportEntries();
+      let html = filesToImport.length === 1
+        ? `<p><strong>File:</strong> ${filesToImport[0].name} (${filesToImport[0].size.toLocaleString()} bytes)</p>`
+        : `<p><strong>Folder import:</strong> ${filesToImport.length} selected files</p>`;
+      Object.entries(entries).forEach(([k,v]) => {
+        html += `<div><strong>${k.replace(/_/g,' ')}:</strong> ${v}</div>`;
+      });
+      reviewContent.innerHTML = html;
+      reviewModal.style.display = 'flex';
+      // confirm/cancel handlers
+      const doUpload = async () => {
+        reviewModal.style.display = 'none';
+        submitButton.disabled = true;
+        showStatus('Importing...');
+        try {
+          await createSampleIfNeeded();
+          const finalEntries = getImportEntries();
+          const imported = [];
+          const failures = [];
+          importQueue.replaceChildren();
+          importQueuePanel.style.display = '';
+          importSummaryPanel.style.display = 'none';
+          const queueRows = filesToImport.map((file) => {
+            const row = document.createElement('div'); row.className = 'import-queue-row';
+            const name = document.createElement('span'); name.textContent = file.webkitRelativePath || file.relativePath || file.name;
+            const state = document.createElement('strong'); state.textContent = 'Waiting'; state.dataset.state = 'waiting';
+            row.append(name, state); importQueue.appendChild(row);
+            return state;
+          });
+          for (const [fileIndex, file] of filesToImport.entries()) {
+            showStatus(`Importing ${imported.length + failures.length + 1} of ${filesToImport.length}: ${file.name}`);
+            queueRows[fileIndex].textContent = 'Inspecting';
+            queueRows[fileIndex].dataset.state = 'inspecting';
+            const data = new FormData();
+            data.append('file', file, file.name);
+            const relativePath = file.webkitRelativePath || file.relativePath || '';
+            if (relativePath) data.append('relative_path', relativePath);
+            let inspection = { suggested_metadata: {}, material_system_proposal: null };
+            try {
+              inspection = await inspectFileMetadata(file);
+            } catch (_error) {
+              // Explicit batch metadata can still allow this file to import.
+            }
+            const perFileEntries = { ...(inspection.suggested_metadata || {}), ...finalEntries };
+            if (!perFileEntries.material_system) {
+              const confirmedMaterial = confirmMaterialProposal(file, inspection.material_system_proposal);
+              if (confirmedMaterial) perFileEntries.material_system = confirmedMaterial;
+            }
+            Object.entries(perFileEntries).forEach(([key, value]) => {
+              if (value !== null && value !== undefined && String(value).trim()) data.append(key, value);
+            });
+            const response = await fetch('/files/import', { method: 'POST', body: data });
+            const result = await response.json();
+            if (response.ok) {
+              imported.push(result);
+              queueRows[fileIndex].textContent = 'Imported';
+              queueRows[fileIndex].dataset.state = 'imported';
+            } else {
+              const message = getApiErrorMessage(result, 'rejected');
+              failures.push(`${file.name}: ${message}`);
+              queueRows[fileIndex].textContent = response.status === 409 ? 'Duplicate' : 'Failed';
+              queueRows[fileIndex].dataset.state = 'failed';
+              queueRows[fileIndex].title = message;
+            }
+          }
+          const summary = [`Imported ${imported.length} of ${filesToImport.length} files.`];
+          if (failures.length) summary.push('', ...failures);
+          showStatus(summary.join('\n'), failures.length ? 'error' : 'success');
+          importQueuePanel.style.display = 'none';
+          importSummaryPanel.replaceChildren();
+          const summaryHeading = document.createElement('h3'); summaryHeading.textContent = 'Import complete';
+          const summaryText = document.createElement('p');
+          summaryText.textContent = `${imported.length} imported · ${failures.length} failed or skipped · ${filesToImport.length} total`;
+          importSummaryPanel.append(summaryHeading, summaryText);
+          if (failures.length) {
+            const warning = document.createElement('p'); warning.className = 'error';
+            warning.textContent = 'Review the failed queue entries. Successful files will not be imported again.';
+            importSummaryPanel.appendChild(warning);
+          }
+          importSummaryPanel.style.display = '';
+          const completionId = `${Date.now()}-${Math.random()}`;
+          importSummaryPanel.dataset.completionId = completionId;
+          setTimeout(() => {
+            if (importSummaryPanel.dataset.completionId === completionId) {
+              importSummaryPanel.style.display = 'none';
+              importSummaryPanel.replaceChildren();
+            }
+          }, 4000);
+          if (imported.length && !failures.length) {
+            form.reset();
+            selectFile(null);
+            await fetchOperators();
+          }
+          await fetchSamples();
+          await refreshFiles();
+        } catch (err) {
+          showStatus(err.message, 'error');
+        } finally {
+          submitButton.disabled = false;
+        }
+      };
+
+      confirmImport.onclick = doUpload;
+      cancelImport.onclick = () => { reviewModal.style.display = 'none'; };
     });
 
-    refreshFiles();
+    // fetch sample list then refresh imports
+    (async () => {
+      const rememberedHandle = await getStoredHandle('lastDirectory').catch(() => null);
+      await updateRememberedFolderIndicator(rememberedHandle);
+      await fetchSamples();
+      await fetchOperators();
+      await fetchPresets();
+      await fetchAnalysisRecipes();
+      await refreshFiles();
+      // If the page was opened with ?open=1, try to open the file chooser (best-effort)
+      try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('open') === '1') {
+          // small delay to let the page render
+          setTimeout(() => {
+            try { input.click(); } catch (e) { /* best-effort; user can click manually */ }
+          }, 200);
+        }
+      } catch (_e) {}
+    })();
   </script>
 </body>
 </html>
