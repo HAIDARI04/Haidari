@@ -6,6 +6,10 @@ from typing import Iterator
 
 DATABASE_PATH = Path(__file__).parent / "data" / "materials_data_copilot.db"
 
+
+class StoredDataIntegrityError(ValueError):
+    """Raised when persisted structured data cannot be decoded safely."""
+
 IMPORTED_FILE_COLUMNS = """
     file_id,
     original_filename,
@@ -30,8 +34,10 @@ def deserialize_imported_file(record: sqlite3.Row) -> dict:
     serialized = result.pop("extended_metadata", None)
     try:
         result["experimental_details"] = json.loads(serialized) if serialized else {}
-    except json.JSONDecodeError:
-        result["experimental_details"] = {}
+    except (json.JSONDecodeError, TypeError) as error:
+        raise StoredDataIntegrityError(
+            f"Imported file {result.get('file_id', '<unknown>')} has invalid extended metadata."
+        ) from error
     return result
 
 
@@ -39,8 +45,10 @@ def deserialize_imported_file(record: sqlite3.Row) -> dict:
 def connect_database() -> Iterator[sqlite3.Connection]:
     DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-    connection = sqlite3.connect(DATABASE_PATH)
+    connection = sqlite3.connect(DATABASE_PATH, timeout=10.0)
     connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA foreign_keys = ON")
+    connection.execute("PRAGMA busy_timeout = 10000")
     try:
         yield connection
     except Exception:
@@ -54,6 +62,7 @@ def connect_database() -> Iterator[sqlite3.Connection]:
 
 def initialize_database() -> None:
     with connect_database() as connection:
+        connection.execute("PRAGMA journal_mode = WAL")
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS imported_files (
@@ -170,6 +179,182 @@ def initialize_database() -> None:
                 config TEXT NOT NULL,
                 created_at TEXT NOT NULL
             )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS substrate_peak_feedback (
+                feedback_id TEXT PRIMARY KEY,
+                source_file_id TEXT NOT NULL,
+                material_system TEXT,
+                center REAL NOT NULL,
+                half_width REAL NOT NULL,
+                action TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS analysis_runs (
+                run_id TEXT PRIMARY KEY,
+                file_id TEXT NOT NULL,
+                raw_sha256 TEXT NOT NULL,
+                derived_sha256 TEXT NOT NULL,
+                derived_trace TEXT NOT NULL,
+                processing_config TEXT NOT NULL,
+                result TEXT NOT NULL,
+                app_version TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+        analysis_run_columns = {
+            row["name"]
+            for row in connection.execute("PRAGMA table_info(analysis_runs)")
+        }
+        if "derived_trace" not in analysis_run_columns:
+            # Legacy runs did not retain their processed X/Y arrays. They stay
+            # readable but are reported as unverifiable; every new run must
+            # provide an immutable trace through the INSERT trigger below.
+            connection.execute("ALTER TABLE analysis_runs ADD COLUMN derived_trace TEXT")
+        json_object_columns = (
+            ("imported_files", "extended_metadata", True),
+            ("presets", "config", False),
+            ("analysis_recipes", "config", False),
+            ("analysis_runs", "processing_config", False),
+            ("analysis_runs", "derived_trace", False),
+            ("analysis_runs", "result", False),
+        )
+        for table_name, column_name, nullable in json_object_columns:
+            null_clause = f"NEW.{column_name} IS NOT NULL AND " if nullable else ""
+            validity_expression = (
+                f"CASE WHEN json_valid(NEW.{column_name}) "
+                f"THEN json_type(NEW.{column_name}) ELSE NULL END IS NOT 'object'"
+            )
+            for operation in ("INSERT", "UPDATE"):
+                trigger_name = f"validate_{table_name}_{column_name}_{operation.lower()}"
+                connection.execute(
+                    f"""
+                    CREATE TRIGGER IF NOT EXISTS {trigger_name}
+                    BEFORE {operation} ON {table_name}
+                    WHEN {null_clause}({validity_expression})
+                    BEGIN
+                        SELECT RAISE(ABORT, '{table_name}.{column_name} must be a valid JSON object');
+                    END
+                    """
+                )
+        connection.execute(
+            """
+            CREATE TRIGGER IF NOT EXISTS validate_analysis_run_trace_shape
+            BEFORE INSERT ON analysis_runs
+            WHEN CASE WHEN json_valid(NEW.derived_trace)
+                      THEN json_type(NEW.derived_trace, '$.x') ELSE NULL END IS NOT 'array'
+              OR CASE WHEN json_valid(NEW.derived_trace)
+                      THEN json_type(NEW.derived_trace, '$.y') ELSE NULL END IS NOT 'array'
+              OR json_array_length(NEW.derived_trace, '$.x') < 3
+              OR json_array_length(NEW.derived_trace, '$.x')
+                   <> json_array_length(NEW.derived_trace, '$.y')
+            BEGIN
+                SELECT RAISE(ABORT, 'analysis run derived trace must contain equal x/y arrays with at least three points');
+            END
+            """
+        )
+        connection.execute(
+            """
+            CREATE TRIGGER IF NOT EXISTS validate_analysis_run_result_identity
+            BEFORE INSERT ON analysis_runs
+            WHEN CASE WHEN json_valid(NEW.result)
+                      THEN json_type(NEW.result) ELSE NULL END IS 'object'
+             AND (json_extract(NEW.result, '$.run_id') IS NOT NEW.run_id
+              OR json_extract(NEW.result, '$.file_id') IS NOT NEW.file_id
+              OR json_extract(NEW.result, '$.sha256') IS NOT NEW.raw_sha256
+              OR json_extract(NEW.result, '$.derived_sha256') IS NOT NEW.derived_sha256
+              OR json_extract(NEW.result, '$.app_version') IS NOT NEW.app_version
+              OR json_extract(NEW.result, '$.analyzed_at') IS NOT NEW.created_at
+              OR json_extract(NEW.result, '$.analysis_input') IS NOT 'processed trace'
+              OR json_extract(NEW.result, '$.raw_data_modified') IS NOT 0
+              OR json(NEW.processing_config)
+                   <> json(json_extract(NEW.result, '$.processing_config')))
+            BEGIN
+                SELECT RAISE(ABORT, 'analysis run result provenance does not match its immutable columns');
+            END
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS analysis_runs_file_created
+            ON analysis_runs (file_id, created_at DESC)
+            """
+        )
+        connection.execute(
+            """
+            CREATE TRIGGER IF NOT EXISTS reject_orphan_analysis_run
+            BEFORE INSERT ON analysis_runs
+            WHEN NOT EXISTS (
+                SELECT 1 FROM imported_files WHERE file_id = NEW.file_id
+            )
+            BEGIN
+                SELECT RAISE(ABORT, 'analysis run source file does not exist');
+            END
+            """
+        )
+        connection.execute(
+            """
+            CREATE TRIGGER IF NOT EXISTS reject_analysis_run_raw_sha_mismatch
+            BEFORE INSERT ON analysis_runs
+            WHEN EXISTS (
+                SELECT 1
+                FROM imported_files
+                WHERE file_id = NEW.file_id
+                  AND sha256 <> NEW.raw_sha256
+            )
+            BEGIN
+                SELECT RAISE(ABORT, 'analysis run raw checksum does not match source file');
+            END
+            """
+        )
+        connection.execute(
+            """
+            CREATE TRIGGER IF NOT EXISTS reject_analysis_run_update
+            BEFORE UPDATE ON analysis_runs
+            BEGIN
+                SELECT RAISE(ABORT, 'analysis runs are immutable');
+            END
+            """
+        )
+        connection.execute(
+            """
+            CREATE TRIGGER IF NOT EXISTS reject_analysis_run_delete
+            BEFORE DELETE ON analysis_runs
+            BEGIN
+                SELECT RAISE(ABORT, 'analysis runs are immutable');
+            END
+            """
+        )
+        connection.execute(
+            """
+            CREATE TRIGGER IF NOT EXISTS protect_analyzed_import_identity
+            BEFORE UPDATE OF file_id, sha256 ON imported_files
+            WHEN (OLD.file_id <> NEW.file_id OR OLD.sha256 <> NEW.sha256)
+              AND EXISTS (
+                  SELECT 1 FROM analysis_runs WHERE file_id = OLD.file_id
+              )
+            BEGIN
+                SELECT RAISE(ABORT, 'analyzed source identity and checksum are immutable');
+            END
+            """
+        )
+        connection.execute(
+            """
+            CREATE TRIGGER IF NOT EXISTS protect_analyzed_import_delete
+            BEFORE DELETE ON imported_files
+            WHEN EXISTS (
+                SELECT 1 FROM analysis_runs WHERE file_id = OLD.file_id
+            )
+            BEGIN
+                SELECT RAISE(ABORT, 'analyzed source records cannot be deleted');
+            END
             """
         )
 
@@ -308,6 +493,10 @@ def get_imported_file(file_id: str) -> dict | None:
             SELECT {IMPORTED_FILE_COLUMNS}
             FROM imported_files
             WHERE file_id = ?
+              AND NOT EXISTS (
+                  SELECT 1 FROM archived_imports
+                  WHERE archived_imports.file_id = imported_files.file_id
+              )
             """,
             (file_id,),
         ).fetchone()
@@ -427,7 +616,15 @@ def archive_imported_files(
 ) -> int:
     placeholders = ",".join("?" for _ in file_ids)
     existing = connection.execute(
-        f"SELECT file_id FROM imported_files WHERE file_id IN ({placeholders})",
+        f"""
+        SELECT file_id
+        FROM imported_files
+        WHERE file_id IN ({placeholders})
+          AND NOT EXISTS (
+              SELECT 1 FROM archived_imports
+              WHERE archived_imports.file_id = imported_files.file_id
+          )
+        """,
         file_ids,
     ).fetchall()
     existing_ids = [record["file_id"] for record in existing]
@@ -492,6 +689,62 @@ def create_analysis_recipe(connection: sqlite3.Connection, recipe: dict) -> None
     connection.execute(
         "INSERT INTO analysis_recipes (recipe_id, name, config, created_at) VALUES (:recipe_id, :name, :config, :created_at)",
         recipe,
+    )
+
+
+def create_analysis_run(connection: sqlite3.Connection, run: dict) -> None:
+    connection.execute(
+        """INSERT INTO analysis_runs
+           (run_id, file_id, raw_sha256, derived_sha256, derived_trace, processing_config,
+            result, app_version, created_at)
+           VALUES (:run_id, :file_id, :raw_sha256, :derived_sha256,
+                   :derived_trace, :processing_config, :result, :app_version, :created_at)""",
+        run,
+    )
+
+
+def list_analysis_runs(file_id: str) -> list[dict]:
+    with connect_database() as connection:
+        rows = connection.execute(
+            """SELECT run_id, file_id, raw_sha256, derived_sha256, derived_trace,
+                      processing_config, result, app_version, created_at
+               FROM analysis_runs
+               WHERE file_id = ?
+               ORDER BY created_at DESC, run_id DESC""",
+            (file_id,),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def get_analysis_run(run_id: str) -> dict | None:
+    with connect_database() as connection:
+        row = connection.execute(
+            """SELECT run_id, file_id, raw_sha256, derived_sha256, derived_trace,
+                      processing_config, result, app_version, created_at
+               FROM analysis_runs WHERE run_id = ?""",
+            (run_id,),
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def list_substrate_peak_feedback(material_system: str | None = None) -> list[dict]:
+    with connect_database() as connection:
+        if material_system is None:
+            rows = connection.execute("SELECT * FROM substrate_peak_feedback ORDER BY created_at").fetchall()
+        else:
+            rows = connection.execute(
+                "SELECT * FROM substrate_peak_feedback WHERE material_system = ? ORDER BY created_at",
+                (material_system,),
+            ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def create_substrate_peak_feedback(connection: sqlite3.Connection, feedback: dict) -> None:
+    connection.execute(
+        """INSERT INTO substrate_peak_feedback
+           (feedback_id, source_file_id, material_system, center, half_width, action, created_at)
+           VALUES (:feedback_id, :source_file_id, :material_system, :center, :half_width, :action, :created_at)""",
+        feedback,
     )
 
 

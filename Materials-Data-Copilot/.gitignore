@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 .venv/
 .pytest_cache/
+.pytest_tmp/
 
 # Node.js
 node_modules/
@@ -29,3 +30,8 @@ reports/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Google Drive OAuth helper artifacts
+backend/credentials.json
+backend/token.json
+backend/gdrive_downloads/

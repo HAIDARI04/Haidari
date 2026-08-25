@@ -136,13 +136,17 @@
     .analysis-section { flex: 1 1 240px; align-self: flex-start; border: 1px solid #d6dee5; border-radius: 8px; background: #f8fafb; }
     .analysis-section > summary { padding: .65rem; color: #15303a; font-size: .9rem; font-weight: 750; cursor: pointer; }
     .analysis-section-fields { display: grid; gap: .5rem; padding: 0 .65rem .65rem; }
+    .pipeline-order { flex: 1 0 100%; display: flex; flex-wrap: wrap; gap: .35rem; margin: 0; padding: 0; list-style: none; }
+    .pipeline-order li { padding: .3rem .55rem; border-radius: 999px; background: #e6f4ef; color: #075f46; font-size: .78rem; font-weight: 750; }
+    .pipeline-order li + li::before { content: '→'; margin-right: .55rem; color: #64748b; }
     #fit-peak-selector { display: grid; gap: .3rem; max-height: 150px; overflow: auto; padding: .45rem; border: 1px solid #d6dee5; border-radius: 6px; }
     #fit-peak-selector legend { font-size: .8rem; font-weight: 700; }
     .peak-color-swatch { width: .75rem; height: .75rem; border-radius: 50%; flex: 0 0 auto; }
     #spectrum-metadata { display: flex; flex-wrap: wrap; gap: .4rem 1rem; margin: .5rem 0; color: #526170; font-size: .85rem; }
     #spectrum-tooltip { font-weight: 650; min-height: 1.2rem; color: #15303a; }
-    #raman-analysis { margin-top: 1rem; padding: 1rem; border: 1px solid #d6dee5; border-radius: 10px; background: #f8fafb; }
+    #raman-analysis { margin-top: 1rem; padding: 1rem; overflow-x: auto; border: 1px solid #d6dee5; border-radius: 10px; background: #f8fafb; }
     #raman-analysis table { background: white; }
+    .analysis-history-action { margin: 0; padding: .35rem .55rem; white-space: nowrap; font-size: .78rem; }
     .analysis-controls { display: flex; flex-wrap: wrap; gap: .6rem; align-items: end; }
     .analysis-controls label { min-width: 220px; }
     .analysis-controls button { margin: 0; }
@@ -233,32 +237,40 @@
               <button id="box-zoom-mode" class="active" type="button" aria-pressed="true">Box zoom</button>
               <button id="pan-spectrum-mode" type="button" aria-pressed="false">Pan X/Y</button>
               <button id="reset-spectrum-view" type="button">Reset view</button>
+              <label><input id="show-plot-details" type="checkbox" checked> Plot details</label>
+              <label>Details<select id="plot-details-mode"><option value="minimal">Minimal</option><option value="detailed">Detailed</option></select></label>
+              <label>Position<select id="plot-details-corner"><option value="top-right">Top right</option><option value="top-left">Top left</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option></select></label>
             </div>
           </details>
-          <details class="spectrum-control-group">
+          <details id="process-analyze-group" class="spectrum-control-group">
             <summary>Process &amp; analyze</summary>
             <div class="spectrum-control-content">
-              <details class="analysis-section">
-                <summary id="artifacts-heading">Instrumental artifacts</summary>
+              <ol class="pipeline-order" aria-label="Required processing order">
+                <li>1 Baseline</li><li>2 Cosmic rays</li><li>3 Rayleigh</li><li>4 Substrate</li><li>5 MoS₂ peaks</li>
+              </ol>
+              <details class="analysis-section" open>
+                <summary id="baseline-heading">1. Baseline detection &amp; subtraction</summary>
+                <div class="analysis-section-fields">
+                  <label>Detection method<select id="baseline-method"><option value="linear">Linear</option><option value="polynomial">Robust quadratic</option><option value="als">Asymmetric LS</option><option value="rubberband" selected>Rubber-band</option></select></label>
+                  <label><input id="show-detected-baseline" type="checkbox"> Show zero baseline after subtraction</label>
+                  <label><input id="subtract-baseline" type="checkbox" checked disabled> Always subtract baseline first</label>
+                  <small>Baseline correction is mandatory and precedes cosmic-ray, Rayleigh, and substrate/reference processing.</small>
+                </div>
+              </details>
+              <details class="analysis-section" open>
+                <summary id="artifacts-heading">2. Instrumental artifacts &amp; substrate</summary>
                 <div class="analysis-section-fields">
                   <label><input id="detect-cosmic-rays" type="checkbox"> Detect cosmic rays</label>
                   <label><input id="remove-cosmic-rays" type="checkbox"> Subtract detected cosmic rays</label>
                   <label><input id="subtract-rayleigh-line" type="checkbox"> Subtract near-zero Rayleigh leakage</label>
                   <label>Rayleigh half-width (cm⁻¹)<input id="rayleigh-cutoff" type="number" min="1" max="100" step="1" value="15"></label>
                   <label><input id="subtract-reference" type="checkbox"> Subtract reference spectrum</label>
+                  <label><input id="show-subtracted-reference" type="checkbox" disabled> Show subtracted reference</label>
                   <label>Reference<select id="analysis-reference"><option value="">No calibration reference</option><option value="__sio2_si_model__">Target-adaptive SiO₂/Si model</option></select></label>
                 </div>
               </details>
-              <details class="analysis-section">
-                <summary id="baseline-heading">Baseline detection &amp; subtraction</summary>
-                <div class="analysis-section-fields">
-                  <label>Detection method<select id="baseline-method"><option value="none">None</option><option value="linear">Linear</option><option value="polynomial">Polynomial</option><option value="als">Asymmetric LS</option><option value="rubberband">Rubber-band</option></select></label>
-                  <label><input id="show-detected-baseline" type="checkbox"> Show detected baseline</label>
-                  <label><input id="subtract-baseline" type="checkbox"> Subtract detected baseline</label>
-                </div>
-              </details>
-              <details class="analysis-section">
-                <summary id="peak-fitting-heading">Peak fitting &amp; parameters</summary>
+              <details class="analysis-section" open>
+                <summary id="peak-fitting-heading">3. Peak fitting &amp; parameters</summary>
                 <div class="analysis-section-fields">
                   <label><input id="show-peaks" type="checkbox"> Detect peaks</label>
                   <label>Sensitivity <input id="peak-sensitivity" type="range" min="1" max="20" value="8"><output id="peak-sensitivity-value">8%</output></label>
@@ -271,7 +283,7 @@
                 </div>
               </details>
               <details class="analysis-section">
-                <summary id="additional-processing-heading">Additional processing</summary>
+                <summary id="additional-processing-heading">4. Additional processing</summary>
                 <div class="analysis-section-fields">
                   <label>Crop min<input id="crop-min" type="number" step="any" placeholder="Auto"></label>
                   <label>Crop max<input id="crop-max" type="number" step="any" placeholder="Auto"></label>
@@ -281,7 +293,7 @@
               </label>
               <label>Window <input id="smoothing-window" type="range" min="1" max="21" step="2" value="1"><output id="smoothing-value">1</output></label>
               <label>Normalize
-                <select id="normalization-method"><option value="none">None</option><option value="maximum">Maximum</option><option value="area">Integrated area</option><option value="selected-peak">Strongest peak</option><option value="reference-peak">Reference peak</option></select>
+                <select id="normalization-method"><option value="none">None</option><option value="maximum">Maximum absolute intensity</option><option value="area">Integrated absolute area</option><option value="selected-peak">Strongest peak prominence</option><option value="reference-peak">Si reference peak (~520.7 cm⁻¹)</option></select>
               </label>
               <input id="normalize-spectrum" type="checkbox" hidden>
               <label>Recipe<select id="analysis-recipe"><option value="">Load recipe...</option></select></label>
@@ -298,6 +310,7 @@
               <button id="export-spectrum-svg" type="button">SVG</button>
               <button id="export-spectrum-png" type="button">PNG</button>
               <button id="export-analysis-json" type="button">Analysis JSON</button>
+              <button id="view-analysis-history" type="button">Analysis history</button>
             </div>
           </details>
         </div>
@@ -410,9 +423,9 @@
         <button id="submit-button" type="submit">Review import →</button>
 
         <!-- Review modal -->
-        <div id="review-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); align-items:center; justify-content:center;">
-          <div style="background:#fff; padding:1rem; border-radius:10px; width:min(820px, 95%); max-height:85vh; overflow:auto;">
-            <h3>Review import</h3>
+        <div id="review-modal" role="dialog" aria-modal="true" aria-labelledby="review-import-heading" aria-describedby="review-content" class="modal-overlay" hidden>
+          <div class="modal-card" style="width:min(820px, 95%);">
+            <h3 id="review-import-heading">Review import</h3>
             <div id="review-content" style="font-family:inherit; font-size:0.95rem; color:#15303a"></div>
             <div style="display:flex; gap:.5rem; margin-top:1rem">
               <button id="confirm-import" type="button">Confirm import</button>
@@ -456,7 +469,7 @@
     </section>
 
     <div id="edit-metadata-modal" class="modal-overlay" hidden>
-      <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="edit-metadata-heading">
+      <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="edit-metadata-heading" aria-describedby="edit-metadata-filename edit-metadata-error">
         <h2 id="edit-metadata-heading">Edit import metadata</h2>
         <p id="edit-metadata-filename"></p>
         <div class="grid">
@@ -499,6 +512,21 @@
         <div class="modal-actions">
           <button id="cancel-metadata-edit" type="button" style="background:#6b7280">Cancel</button>
           <button id="save-metadata-edit" type="button">Save changes</button>
+        </div>
+      </section>
+    </div>
+    <div id="residual-review-modal" class="modal-overlay" hidden>
+      <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="residual-review-heading" aria-describedby="residual-review-message">
+        <h2 id="residual-review-heading">Remaining peak after reference subtraction</h2>
+        <p id="residual-review-message"></p>
+        <label>Command for VS Code/Codex Chat (optional)
+          <textarea id="residual-command" placeholder="Explain what you want Codex to investigate or change."></textarea>
+        </label>
+        <small>Browser security prevents automatic chat submission. Command copies a complete prompt and opens VS Code for pasting.</small>
+        <div class="modal-actions" style="margin-top:1rem">
+          <button id="keep-residual-peak" type="button" style="background:#6b7280">Keep it</button>
+          <button id="remove-residual-peak" type="button">Remove it and learn</button>
+          <button id="command-residual-peak" type="button" style="background:#5f3dc4">Command</button>
         </div>
       </section>
     </div>
@@ -551,8 +579,12 @@
     const spectrumMessage = document.querySelector('#spectrum-message');
     const spectrumMetadata = document.querySelector('#spectrum-metadata');
     const spectrumToolbar = document.querySelector('#spectrum-toolbar');
+    const processAnalyzeGroup = document.querySelector('#process-analyze-group');
     const spectrumHelp = document.querySelector('#spectrum-help');
     const spectrumTooltip = document.querySelector('#spectrum-tooltip');
+    const showPlotDetails = document.querySelector('#show-plot-details');
+    const plotDetailsMode = document.querySelector('#plot-details-mode');
+    const plotDetailsCorner = document.querySelector('#plot-details-corner');
     const normalizeSpectrum = document.querySelector('#normalize-spectrum');
     const baselineSpectrum = document.querySelector('#baseline-spectrum');
     const smoothingWindow = document.querySelector('#smoothing-window');
@@ -572,6 +604,7 @@
     const smoothingMethod = document.querySelector('#smoothing-method');
     const normalizationMethod = document.querySelector('#normalization-method');
     const subtractReference = document.querySelector('#subtract-reference');
+    const showSubtractedReference = document.querySelector('#show-subtracted-reference');
     const peakModel = document.querySelector('#peak-model');
     const showFitComponents = document.querySelector('#show-fit-components');
     const showCumulativeFit = document.querySelector('#show-cumulative-fit');
@@ -583,6 +616,9 @@
     const analysisResults = document.querySelector('#analysis-results');
     const editMetadataModal = document.querySelector('#edit-metadata-modal');
     const editMetadataError = document.querySelector('#edit-metadata-error');
+    const residualReviewModal = document.querySelector('#residual-review-modal');
+    const residualReviewMessage = document.querySelector('#residual-review-message');
+    const residualCommand = document.querySelector('#residual-command');
     let selectedFiles = [];
     let currentSpectrum = null;
     let currentImportedFile = null;
@@ -592,12 +628,64 @@
     let interactionMode = 'zoom';
     let editingImportedFile = null;
     let referenceSpectrum = null;
+    let referenceProvenance = null;
     let latestAnalysis = null;
+    let activeHistoricalRun = null;
     let selectedFitPeaks = null;
+    let activeResidualPeak = null;
+    let referenceRequestSerial = 0;
+    let customPlotDetailsPosition = null;
+    const modalReturnFocus = new WeakMap();
     const fitPeakColors = ['#e03131', '#1971c2', '#2f9e44', '#9c36b5', '#f08c00', '#0c8599', '#5f3dc4', '#c2255c'];
     let allImportedFiles = [];
     const materialProposalDecisions = new Map();
     let recentPage = 1;
+
+    function openAccessibleModal(modal, initialFocus) {
+      const activeElement = document.activeElement;
+      if (activeElement instanceof HTMLElement) modalReturnFocus.set(modal, activeElement);
+      modal.hidden = false;
+      requestAnimationFrame(() => initialFocus?.focus());
+    }
+
+    function closeAccessibleModal(modal) {
+      modal.hidden = true;
+      const returnTarget = modalReturnFocus.get(modal);
+      modalReturnFocus.delete(modal);
+      if (returnTarget?.isConnected && !returnTarget.disabled) returnTarget.focus();
+    }
+
+    function openModalInPriorityOrder() {
+      return [residualReviewModal, editMetadataModal, reviewModal]
+        .find((modal) => !modal.hidden) || null;
+    }
+
+    document.addEventListener('keydown', (event) => {
+      const modal = openModalInPriorityOrder();
+      if (!modal) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        if (modal === editMetadataModal) document.querySelector('#cancel-metadata-edit').click();
+        else if (modal === reviewModal) cancelImport.click();
+        else {
+          closeAccessibleModal(residualReviewModal);
+          activeResidualPeak = null;
+        }
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = Array.from(modal.querySelectorAll(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )).filter((element) => !element.hidden && element.getClientRects().length);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first.focus();
+      }
+    });
     const recentPageSize = 8;
 
     document.querySelectorAll('.spectrum-control-group').forEach((group) => {
@@ -626,20 +714,121 @@
       }).filter((index) => index >= 0);
     }
 
-    function detectedBaseline(values, method) {
+    function solveThreeByThree(matrix, vector) {
+      const augmented = matrix.map((row, index) => [...row, vector[index]]);
+      for (let pivot = 0; pivot < 3; pivot += 1) {
+        let best = pivot;
+        for (let row = pivot + 1; row < 3; row += 1) if (Math.abs(augmented[row][pivot]) > Math.abs(augmented[best][pivot])) best = row;
+        if (Math.abs(augmented[best][pivot]) < 1e-12) return null;
+        [augmented[pivot], augmented[best]] = [augmented[best], augmented[pivot]];
+        const divisor = augmented[pivot][pivot];
+        for (let column = pivot; column < 4; column += 1) augmented[pivot][column] /= divisor;
+        for (let row = 0; row < 3; row += 1) {
+          if (row === pivot) continue;
+          const factor = augmented[row][pivot];
+          for (let column = pivot; column < 4; column += 1) augmented[row][column] -= factor * augmented[pivot][column];
+        }
+      }
+      return augmented.map((row) => row[3]);
+    }
+
+    function robustQuadraticBaseline(xValues, values) {
+      const xMin = Math.min(...xValues); const xSpan = Math.max(...xValues) - xMin || 1;
+      const tValues = xValues.map((value) => (value - xMin) / xSpan);
+      let selected = values.map((_value, index) => index);
+      let coefficients = [values[0], values[values.length - 1] - values[0], 0];
+      for (let iteration = 0; iteration < 4; iteration += 1) {
+        const sums = [0, 0, 0, 0, 0]; const targets = [0, 0, 0];
+        selected.forEach((index) => {
+          const t = tValues[index]; const y = values[index];
+          let power = 1;
+          for (let degree = 0; degree <= 4; degree += 1) { sums[degree] += power; power *= t; }
+          targets[0] += y; targets[1] += y * t; targets[2] += y * t * t;
+        });
+        coefficients = solveThreeByThree(
+          [[sums[0], sums[1], sums[2]], [sums[1], sums[2], sums[3]], [sums[2], sums[3], sums[4]]], targets,
+        ) || coefficients;
+        const fitted = tValues.map((t) => coefficients[0] + coefficients[1] * t + coefficients[2] * t * t);
+        selected = values.map((value, index) => ({ index, residual: value - fitted[index] }))
+          .sort((left, right) => left.residual - right.residual)
+          .slice(0, Math.max(6, Math.ceil(values.length * 0.6))).map((item) => item.index);
+      }
+      return tValues.map((t) => coefficients[0] + coefficients[1] * t + coefficients[2] * t * t);
+    }
+
+    function asymmetricLeastSquaresBaseline(values, lambda = 100000, asymmetry = 0.001) {
+      const count = values.length;
+      if (count < 3) return values.slice();
+      let baseline = values.slice();
+      let weights = new Array(count).fill(1);
+      const applySystem = (vector) => {
+        const output = vector.map((value, index) => weights[index] * value);
+        for (let index = 0; index < count - 2; index += 1) {
+          const difference = vector[index] - 2 * vector[index + 1] + vector[index + 2];
+          output[index] += lambda * difference;
+          output[index + 1] -= 2 * lambda * difference;
+          output[index + 2] += lambda * difference;
+        }
+        return output;
+      };
+      for (let outer = 0; outer < 8; outer += 1) {
+        const target = values.map((value, index) => weights[index] * value);
+        const appliedBaseline = applySystem(baseline);
+        let residual = target.map((value, index) => value - appliedBaseline[index]);
+        let direction = residual.slice();
+        let residualEnergy = residual.reduce((sum, value) => sum + value * value, 0);
+        for (let iteration = 0; iteration < 60 && residualEnergy > 1e-16; iteration += 1) {
+          const applied = applySystem(direction);
+          const denominator = direction.reduce((sum, value, index) => sum + value * applied[index], 0);
+          if (Math.abs(denominator) < 1e-20) break;
+          const step = residualEnergy / denominator;
+          baseline = baseline.map((value, index) => value + step * direction[index]);
+          const nextResidual = residual.map((value, index) => value - step * applied[index]);
+          const nextEnergy = nextResidual.reduce((sum, value) => sum + value * value, 0);
+          if (nextEnergy < 1e-12 * (target.reduce((sum, value) => sum + value * value, 0) || 1)) break;
+          const beta = nextEnergy / residualEnergy;
+          direction = nextResidual.map((value, index) => value + beta * direction[index]);
+          residual = nextResidual; residualEnergy = nextEnergy;
+        }
+        weights = values.map((value, index) => value > baseline[index] ? asymmetry : 1 - asymmetry);
+      }
+      return baseline;
+    }
+
+    function rubberBandBaseline(xValues, values) {
+      const hull = [];
+      for (let index = 0; index < values.length; index += 1) {
+        while (hull.length >= 2) {
+          const first = hull[hull.length - 2]; const second = hull[hull.length - 1];
+          const cross = (xValues[second] - xValues[first]) * (values[index] - values[first])
+            - (values[second] - values[first]) * (xValues[index] - xValues[first]);
+          if (cross > 0) break;
+          hull.pop();
+        }
+        hull.push(index);
+      }
+      const baseline = new Array(values.length);
+      for (let segment = 0; segment < hull.length - 1; segment += 1) {
+        const left = hull[segment]; const right = hull[segment + 1];
+        const span = xValues[right] - xValues[left];
+        for (let index = left; index <= right; index += 1) {
+          const ratio = span ? (xValues[index] - xValues[left]) / span : 0;
+          baseline[index] = values[left] + ratio * (values[right] - values[left]);
+        }
+      }
+      return baseline;
+    }
+
+    function detectedBaseline(xValues, values, method) {
       if (method === 'none' || values.length < 2) return new Array(values.length).fill(0);
       const first = values[0];
       const last = values[values.length - 1];
-      if (method === 'linear') return values.map((_value, index) => first + ((last - first) * index / (values.length - 1)));
-      if (method === 'polynomial') {
-        const middle = values[Math.floor(values.length / 2)];
-        return values.map((_value, index) => {
-          const t = index / (values.length - 1);
-          return first * 2 * (t - .5) * (t - 1) - middle * 4 * t * (t - 1) + last * 2 * t * (t - .5);
-        });
-      }
-      const radius = method === 'als' ? 20 : 40;
-      return values.map((_value, index) => Math.min(...values.slice(Math.max(0, index - radius), Math.min(values.length, index + radius + 1))));
+      const xSpan = xValues[xValues.length - 1] - xValues[0];
+      if (method === 'linear') return xValues.map((xValue) => first + ((last - first) * (xValue - xValues[0]) / (xSpan || 1)));
+      if (method === 'polynomial') return robustQuadraticBaseline(xValues, values);
+      if (method === 'als') return asymmetricLeastSquaresBaseline(values);
+      if (method === 'rubberband') return rubberBandBaseline(xValues, values);
+      return new Array(values.length).fill(0);
     }
 
     function subtractRayleighLeakage(xValues, yValues, halfWidth) {
@@ -663,14 +852,12 @@
       });
     }
 
-    function processedIntensities(spectrum) {
-      let values = spectrum.y.slice();
-      if (subtractReference.checked && referenceSpectrum && referenceSpectrum.y.length === values.length) {
-        values = values.map((value, index) => value - referenceSpectrum.y[index]);
-      }
-      if (subtractRayleighLine.checked) {
-        values = subtractRayleighLeakage(spectrum.x, values, Number(rayleighCutoff.value));
-      }
+    function artifactAndBaselineIntensities(xValues, sourceValues) {
+      let values = sourceValues.slice();
+      // Scientific pipeline invariant: baseline is detected and subtracted
+      // before artifact detection/removal or reference subtraction.
+      const baseline = detectedBaseline(xValues, values, baselineMethod.value);
+      values = values.map((value, index) => value - baseline[index]);
       if (removeCosmicRays.checked && values.length >= 5) {
         const cosmicIndexes = new Set(cosmicRayIndexes(values));
         values = values.map((value, index, source) => {
@@ -680,41 +867,145 @@
           return median;
         });
       }
-      const windowSize = Number(smoothingWindow.value);
-      if (smoothingMethod.value !== 'none' && windowSize > 1) {
-        const radius = Math.floor(windowSize / 2);
-        values = values.map((_value, index) => {
-          const start = Math.max(0, index - radius);
-          const end = Math.min(values.length, index + radius + 1);
-          const neighborhood = values.slice(start, end);
-          if (smoothingMethod.value === 'gaussian') {
-            const weights = neighborhood.map((_item, localIndex) => Math.exp(-0.5 * ((localIndex - (neighborhood.length - 1) / 2) / Math.max(1, radius / 2)) ** 2));
-            return neighborhood.reduce((sum, item, localIndex) => sum + item * weights[localIndex], 0) / weights.reduce((a, b) => a + b, 0);
-          }
-          if (smoothingMethod.value === 'savitzky' && neighborhood.length >= 5) {
-            const coefficients = [-3, 12, 17, 12, -3];
-            const center = Math.floor(neighborhood.length / 2);
-            const five = neighborhood.slice(Math.max(0, center - 2), center + 3);
-            if (five.length === 5) return five.reduce((sum, item, i) => sum + item * coefficients[i], 0) / 35;
-          }
-          return neighborhood.reduce((sum, item) => sum + item, 0) / neighborhood.length;
-        });
+      if (subtractRayleighLine.checked) {
+        values = subtractRayleighLeakage(xValues, values, Number(rayleighCutoff.value));
       }
-      if (subtractBaseline.checked && baselineMethod.value !== 'none' && values.length > 1) {
-        const baseline = detectedBaseline(values, baselineMethod.value);
-        values = values.map((value, index) => value - baseline[index]);
+      return values;
+    }
+
+    function interpolatedReferenceValues(reference, targetX) {
+      if (!reference?.x || !reference?.y || reference.x.length !== reference.y.length || reference.x.length < 2 || targetX.length < 2) return null;
+      if (reference.x.some((value, index) => index && value <= reference.x[index - 1])) return null;
+      if (targetX.some((value, index) => index && value <= targetX[index - 1])) return null;
+      const referenceStep = Math.abs(reference.x[1] - reference.x[0]);
+      const targetStep = Math.abs(targetX[1] - targetX[0]);
+      const tolerance = Math.max(referenceStep, targetStep) * 0.51;
+      if (targetX[0] < reference.x[0] - tolerance || targetX[targetX.length - 1] > reference.x[reference.x.length - 1] + tolerance) return null;
+      let rightIndex = 1;
+      return targetX.map((target) => {
+        if (target <= reference.x[0]) return reference.y[0];
+        if (target >= reference.x[reference.x.length - 1]) return reference.y[reference.y.length - 1];
+        while (rightIndex < reference.x.length - 1 && reference.x[rightIndex] < target) rightIndex += 1;
+        const leftIndex = rightIndex - 1;
+        const ratio = (target - reference.x[leftIndex]) / (reference.x[rightIndex] - reference.x[leftIndex]);
+        return reference.y[leftIndex] + ratio * (reference.y[rightIndex] - reference.y[leftIndex]);
+      });
+    }
+
+    function processedReferenceIntensities(spectrum) {
+      const alignedReference = interpolatedReferenceValues(referenceSpectrum, spectrum.x);
+      if (!alignedReference) return null;
+      return referenceSpectrum?.baselineCorrected
+        ? alignedReference : artifactAndBaselineIntensities(spectrum.x, alignedReference);
+    }
+
+    function normalizedIntensities(xValues, sourceValues, method, referenceValues = null) {
+      const values = sourceValues.slice();
+      if (method === 'none' || !values.length) return values;
+      if (method === 'maximum' || method === 'max') {
+        const divisor = Math.max(...values.map((value) => Math.abs(value)));
+        return divisor ? values.map((value) => value / divisor) : values;
       }
-      if (normalizationMethod.value !== 'none') {
+      if (method === 'area') {
+        let area = 0;
+        for (let index = 0; index < values.length - 1; index += 1) {
+          area += (Math.abs(values[index]) + Math.abs(values[index + 1])) / 2
+            * Math.abs(xValues[index + 1] - xValues[index]);
+        }
+        return area ? values.map((value) => value / area) : values;
+      }
+      if (method === 'selected-peak' || method === 'minmax') {
         const minimum = Math.min(...values);
-        const maximum = Math.max(...values);
-        if (normalizationMethod.value === 'area') {
-          const area = values.reduce((sum, value) => sum + Math.max(0, value - minimum), 0) || 1;
-          values = values.map((value) => (value - minimum) / area);
-        } else {
-          const span = maximum - minimum || 1;
-          values = values.map((value) => (value - minimum) / span);
+        const span = Math.max(...values) - minimum;
+        return span ? values.map((value) => (value - minimum) / span) : values;
+      }
+      if (method === 'reference-peak' && referenceValues?.length === values.length) {
+        const band = referenceValues.filter((_value, index) => 500 <= xValues[index] && xValues[index] <= 540);
+        if (band.length >= 3) {
+          const prominence = Math.max(...band) - Math.min(...band);
+          if (prominence) return values.map((value) => value / prominence);
         }
       }
+      return values;
+    }
+
+    function effectiveSmoothingWindow() {
+      const requested = Math.max(1, Number(smoothingWindow.value) || 1);
+      return smoothingMethod.value === 'savitzky' && requested < 5 ? 5 : requested;
+    }
+
+    function smoothedIntensities(xValues, sourceValues, method, requestedWindow) {
+      const values = sourceValues.slice();
+      if (method === 'none' || values.length < 3) return values;
+      let windowSize = Math.max(1, Math.round(Number(requestedWindow) || 1));
+      if (windowSize % 2 === 0) windowSize += 1;
+      if (method === 'savitzky') windowSize = Math.max(5, windowSize);
+      if (windowSize <= 1) return values;
+      const radius = Math.floor(windowSize / 2);
+      return values.map((_value, index) => {
+        const start = Math.max(0, index - radius);
+        const end = Math.min(values.length, index + radius + 1);
+        const neighborhood = values.slice(start, end);
+        if (method === 'moving') {
+          return neighborhood.reduce((sum, item) => sum + item, 0) / neighborhood.length;
+        }
+        if (method === 'gaussian') {
+          const sigma = Math.max(0.75, radius / 2);
+          const weights = neighborhood.map((_item, localIndex) => {
+            const sourceIndex = start + localIndex;
+            return Math.exp(-0.5 * ((sourceIndex - index) / sigma) ** 2);
+          });
+          const weightSum = weights.reduce((sum, weight) => sum + weight, 0);
+          return neighborhood.reduce((sum, item, localIndex) => sum + item * weights[localIndex], 0) / weightSum;
+        }
+        if (method === 'savitzky' && neighborhood.length >= 3) {
+          const centerX = xValues[index];
+          const sums = [0, 0, 0, 0, 0];
+          const targets = [0, 0, 0];
+          neighborhood.forEach((item, localIndex) => {
+            const offset = xValues[start + localIndex] - centerX;
+            let power = 1;
+            for (let degree = 0; degree <= 4; degree += 1) { sums[degree] += power; power *= offset; }
+            targets[0] += item;
+            targets[1] += item * offset;
+            targets[2] += item * offset * offset;
+          });
+          const coefficients = solveThreeByThree(
+            [[sums[0], sums[1], sums[2]], [sums[1], sums[2], sums[3]], [sums[2], sums[3], sums[4]]],
+            targets,
+          );
+          if (coefficients?.every(Number.isFinite)) return coefficients[0];
+        }
+        return values[index];
+      });
+    }
+
+    function processedIntensities(spectrum) {
+      if (
+        activeHistoricalRun
+        && activeHistoricalRun.fileId === currentImportedFile?.file_id
+        && activeHistoricalRun.trace.y.length === spectrum.y.length
+      ) {
+        return activeHistoricalRun.trace.y.slice();
+      }
+      if (subtractReference.checked && referenceSpectrum?.correctedY?.length === spectrum.y.length) {
+        let values = smoothedIntensities(
+          spectrum.x, referenceSpectrum.correctedY, smoothingMethod.value, effectiveSmoothingWindow(),
+        );
+        const referenceValues = artifactAndBaselineIntensities(spectrum.x, spectrum.y);
+        values = normalizedIntensities(spectrum.x, values, normalizationMethod.value, referenceValues);
+        return values;
+      }
+      let values = artifactAndBaselineIntensities(spectrum.x, spectrum.y);
+      if (subtractReference.checked) {
+        const preparedReference = processedReferenceIntensities(spectrum);
+        if (preparedReference) values = values.map((value, index) => value - preparedReference[index]);
+      }
+      values = smoothedIntensities(
+        spectrum.x, values, smoothingMethod.value, effectiveSmoothingWindow(),
+      );
+      const referenceValues = artifactAndBaselineIntensities(spectrum.x, spectrum.y);
+      values = normalizedIntensities(spectrum.x, values, normalizationMethod.value, referenceValues);
       return values;
     }
 
@@ -752,6 +1043,69 @@
         .filter((peak) => !assigned.some((known) => Math.abs(known.x - peak.x) < 4));
       return [...assigned, ...generic.slice(0, Math.max(0, 8 - assigned.length))]
         .sort((a, b) => a.x - b.x);
+    }
+
+    function paddedYRange(values, fraction = 0.06) {
+      const minimum = Math.min(...values);
+      const maximum = Math.max(...values);
+      const span = maximum - minimum;
+      const padding = span > 0 ? span * fraction : Math.max(1, Math.abs(maximum) * fraction);
+      return { yMin: minimum - padding, yMax: maximum + padding };
+    }
+
+    function renderPlotDetails(spectrum) {
+      if (!showPlotDetails.checked || !spectrumView) return;
+      const rows = [{ label: 'Processed / corrected', color: '#087f5b' }];
+      if (subtractReference.checked) rows.push({ label: 'Original', color: '#b8c0c8' });
+      if (showSubtractedReference.checked && referenceSpectrum) rows.push({ label: 'Subtracted reference', color: '#9c36b5', dash: true });
+      if (showDetectedBaseline.checked) rows.push({ label: 'Post-subtraction baseline (0)', color: '#d97706', dash: true });
+      if (plotDetailsMode.value === 'detailed') {
+        rows.push({ label: `Sample: ${currentImportedFile?.sample_id || '—'}` });
+        rows.push({ label: `Material: ${currentImportedFile?.material_system || '—'}` });
+        rows.push({ label: `View: ${spectrumView.xMin.toFixed(1)}–${spectrumView.xMax.toFixed(1)} ${spectrum.x_units || ''}` });
+        rows.push({ label: `First stage: ${baselineMethod.value} baseline subtraction` });
+        rows.push({ label: `Smoothing: ${smoothingMethod.value}${smoothingMethod.value !== 'none' ? ` (${smoothingWindow.value})` : ''}` });
+        rows.push({ label: `Normalization: ${normalizationMethod.value}` });
+        if (latestAnalysis?.peaks?.E_mode) rows.push({ label: `MoS₂ E: ${latestAnalysis.peaks.E_mode.position.toFixed(2)} cm⁻¹` });
+        if (latestAnalysis?.peaks?.A1_mode) rows.push({ label: `MoS₂ A₁: ${latestAnalysis.peaks.A1_mode.position.toFixed(2)} cm⁻¹` });
+        if (latestAnalysis?.peak_separation != null) rows.push({ label: `Separation: ${latestAnalysis.peak_separation.toFixed(2)} cm⁻¹` });
+      }
+      const boxWidth = 260;
+      const boxHeight = 20 + rows.length * 16;
+      const corners = {
+        'top-right': { x: 900 - 35 - boxWidth, y: 38 }, 'top-left': { x: 88, y: 38 },
+        'bottom-left': { x: 88, y: 420 - 60 - boxHeight },
+        'bottom-right': { x: 900 - 35 - boxWidth, y: 420 - 60 - boxHeight },
+      };
+      const position = customPlotDetailsPosition || corners[plotDetailsCorner.value] || corners['top-right'];
+      const group = svgElement('g', { transform: `translate(${position.x} ${position.y})`, 'data-plot-details': 'true', cursor: 'move' });
+      group.appendChild(svgElement('rect', { width: boxWidth, height: boxHeight, rx: 6, fill: 'rgba(255,255,255,.94)', stroke: '#8b98a5' }));
+      rows.forEach((row, index) => {
+        const y = 17 + index * 16;
+        if (row.color) {
+          const attributes = { x1: 10, y1: y - 3, x2: 34, y2: y - 3, stroke: row.color, 'stroke-width': '2' };
+          if (row.dash) attributes['stroke-dasharray'] = '5 3';
+          group.appendChild(svgElement('line', attributes));
+        }
+        const label = svgElement('text', { x: row.color ? 41 : 10, y, fill: '#243746', 'font-size': '11' });
+        label.textContent = row.label;
+        group.appendChild(label);
+      });
+      group.addEventListener('pointerdown', (event) => {
+        event.preventDefault(); event.stopPropagation();
+        const start = { clientX: event.clientX, clientY: event.clientY, ...position };
+        group.setPointerCapture(event.pointerId);
+        const move = (moveEvent) => {
+          const rect = spectrumPlot.getBoundingClientRect();
+          const x = Math.max(0, Math.min(900 - boxWidth, start.x + (moveEvent.clientX - start.clientX) * 900 / rect.width));
+          const y = Math.max(0, Math.min(420 - boxHeight, start.y + (moveEvent.clientY - start.clientY) * 420 / rect.height));
+          customPlotDetailsPosition = { x, y };
+          group.setAttribute('transform', `translate(${x} ${y})`);
+        };
+        const end = () => { group.removeEventListener('pointermove', move); group.removeEventListener('pointerup', end); };
+        group.addEventListener('pointermove', move); group.addEventListener('pointerup', end);
+      });
+      spectrumPlot.appendChild(group);
     }
 
     function fitPeakKey(peak) { return peak.x.toFixed(3); }
@@ -802,11 +1156,13 @@
         const requestedMax = Number(cropMax.value);
         const selectedMin = cropMin.value !== '' ? Math.max(fullXMin, requestedMin) : fullXMin;
         const selectedMax = cropMax.value !== '' ? Math.min(fullXMax, requestedMax) : fullXMax;
+        const rangeValues = (subtractReference.checked && referenceSpectrum) || activeHistoricalRun
+          ? [...yValues, ...spectrum.y] : yValues;
+        const paddedY = paddedYRange(rangeValues);
         spectrumView = {
           xMin: selectedMin < selectedMax ? selectedMin : fullXMin,
           xMax: selectedMin < selectedMax ? selectedMax : fullXMax,
-          yMin: Math.min(...yValues),
-          yMax: Math.max(...yValues),
+          ...paddedY,
         };
       }
       const visibleIndexes = xValues.map((value, index) => ({ value, index })).filter(({ value }) => value >= spectrumView.xMin && value <= spectrumView.xMax);
@@ -846,6 +1202,21 @@
       }
 
       const points = visibleIndexes.map(({ value, index }) => `${scaleX(value)},${scaleY(yValues[index])}`).join(' ');
+      if ((subtractReference.checked && referenceSpectrum) || activeHistoricalRun) {
+        const originalPoints = visibleIndexes
+          .map(({ value, index }) => `${scaleX(value)},${scaleY(spectrum.y[index])}`)
+          .join(' ');
+        spectrumPlot.appendChild(svgElement('polyline', {
+          points: originalPoints, fill: 'none', stroke: '#b8c0c8', 'stroke-width': '1.7',
+          'vector-effect': 'non-scaling-stroke',
+        }));
+        const originalLegend = svgElement('text', {
+          x: width - margin.right, y: margin.top + 30, 'text-anchor': 'end',
+          fill: '#7b8794', 'font-size': '12', 'font-weight': '700',
+        });
+        originalLegend.textContent = 'Original spectrum';
+        spectrumPlot.appendChild(originalLegend);
+      }
       spectrumPlot.appendChild(svgElement('polyline', {
         points,
         fill: 'none',
@@ -853,19 +1224,37 @@
         'stroke-width': '2',
         'vector-effect': 'non-scaling-stroke',
       }));
-      if (showDetectedBaseline.checked && baselineMethod.value !== 'none') {
-        const baseline = detectedBaseline(spectrum.y, baselineMethod.value);
-        const baselinePoints = visibleIndexes.map(({ value, index }) => `${scaleX(value)},${scaleY(baseline[index])}`).join(' ');
+      const displayedReference = showSubtractedReference.checked
+        ? processedReferenceIntensities(spectrum) : null;
+      if (displayedReference) {
+        const referencePoints = visibleIndexes
+          .map(({ value, index }) => `${scaleX(value)},${scaleY(displayedReference[index])}`)
+          .join(' ');
+        spectrumPlot.appendChild(svgElement('polyline', {
+          points: referencePoints, fill: 'none', stroke: '#9c36b5', 'stroke-width': '1.8',
+          'stroke-dasharray': '8 4', 'vector-effect': 'non-scaling-stroke',
+        }));
+        const referenceLegend = svgElement('text', {
+          x: width - margin.right, y: margin.top + 14, 'text-anchor': 'end',
+          fill: '#9c36b5', 'font-size': '12', 'font-weight': '700',
+        });
+        referenceLegend.textContent = 'Subtracted reference';
+        spectrumPlot.appendChild(referenceLegend);
+      }
+      if (showDetectedBaseline.checked) {
+        const baselinePoints = visibleIndexes.map(({ value }) => `${scaleX(value)},${scaleY(0)}`).join(' ');
         spectrumPlot.appendChild(svgElement('polyline', {
           points: baselinePoints, fill: 'none', stroke: '#d97706', 'stroke-width': '1.7',
           'stroke-dasharray': '7 4', 'vector-effect': 'non-scaling-stroke',
         }));
       }
       if (detectCosmicRays.checked) {
-        const cosmicIndexes = new Set(cosmicRayIndexes(spectrum.y));
+        const rawBaseline = detectedBaseline(spectrum.x, spectrum.y, baselineMethod.value);
+        const baselineCorrected = spectrum.y.map((value, index) => value - rawBaseline[index]);
+        const cosmicIndexes = new Set(cosmicRayIndexes(baselineCorrected));
         visibleIndexes.filter(({ index }) => cosmicIndexes.has(index)).forEach(({ value, index }) => {
           spectrumPlot.appendChild(svgElement('circle', {
-            cx: scaleX(value), cy: scaleY(spectrum.y[index]), r: 6,
+            cx: scaleX(value), cy: scaleY(yValues[index]), r: 6,
             fill: 'none', stroke: '#c92a2a', 'stroke-width': '2',
           }));
         });
@@ -874,6 +1263,7 @@
       renderFitPeakSelector(fitPeaks);
       if (showFitComponents.checked || showCumulativeFit.checked || showFitResidual.checked) {
         const selectedPeaks = fitPeaks.filter((peak) => selectedFitPeaks.has(fitPeakKey(peak)));
+        const fitOrigin = 0;
         const componentValue = (peak, xValue) => {
           const width = 4;
           const offset = (xValue - peak.x) / width;
@@ -883,10 +1273,10 @@
           if (peakModel.value === 'Gaussian') shape = gaussian;
           if (peakModel.value === 'Voigt') shape = .5 * gaussian + .5 * lorentzian;
           if (peakModel.value === 'Pseudo-Voigt') shape = .35 * gaussian + .65 * lorentzian;
-          return yMin + (peak.y - yMin) * shape;
+          return fitOrigin + (peak.y - fitOrigin) * shape;
         };
-        const modelValue = (xValue) => yMin + selectedPeaks.reduce(
-          (sum, peak) => sum + componentValue(peak, xValue) - yMin, 0
+        const modelValue = (xValue) => fitOrigin + selectedPeaks.reduce(
+          (sum, peak) => sum + componentValue(peak, xValue) - fitOrigin, 0
         );
         const modelValues = visibleX.map(modelValue);
         if (showFitComponents.checked) {
@@ -904,7 +1294,7 @@
           spectrumPlot.appendChild(svgElement('polyline', { points: modelPoints, fill: 'none', stroke: '#111827', 'stroke-width': '2.2' }));
         }
         if (showFitResidual.checked) {
-          const residualValues = visibleY.map((value, index) => yMin + (value - modelValues[index]) * .2);
+          const residualValues = visibleY.map((value, index) => value - modelValues[index]);
           const residualPoints = visibleX.map((xValue, index) => `${scaleX(xValue)},${scaleY(residualValues[index])}`).join(' ');
           spectrumPlot.appendChild(svgElement('polyline', { points: residualPoints, fill: 'none', stroke: '#7048e8', 'stroke-width': '1.2' }));
         }
@@ -927,6 +1317,7 @@
         peakLabel.textContent = peak.assignment ? `${peak.assignment} ${peak.x.toFixed(1)}` : peak.x.toFixed(1);
         spectrumPlot.appendChild(peakLabel);
       });
+      renderPlotDetails(spectrum);
       plotGeometry = { width, height, margin, scaleX, scaleY, xMin, xMax, yMin, yMax, xValues, yValues };
       spectrumPlot.hidden = false;
       const measuredMin = Math.min(...spectrum.x);
@@ -939,12 +1330,45 @@
       [
         ['Sample', file.sample_id], ['Material', file.material_system], ['Technique', file.technique], ['Date', file.measurement_date],
         ['Instrument', file.instrument], ['Imported', new Date(file.imported_at).toLocaleString()],
+        ['SHA-256', file.sha256],
       ].forEach(([label, value]) => {
         if (!value) return;
         const item = document.createElement('span');
-        item.textContent = `${label}: ${value}`;
+        const displayedValue = label === 'SHA-256' ? `${value.slice(0, 12)}…` : value;
+        item.textContent = `${label}: ${displayedValue}`;
+        if (label === 'SHA-256') item.title = value;
         spectrumMetadata.appendChild(item);
       });
+      const verifyButton = document.createElement('button');
+      verifyButton.type = 'button';
+      verifyButton.textContent = 'Verify raw file';
+      verifyButton.title = 'Recalculate SHA-256 and compare it with the immutable import record';
+      verifyButton.addEventListener('click', async () => {
+        verifyButton.disabled = true;
+        verifyButton.textContent = 'Verifying…';
+        try {
+          const response = await fetch(`/files/${encodeURIComponent(file.file_id)}/integrity`);
+          const result = await response.json();
+          if (!response.ok) throw new Error(getApiErrorMessage(result, 'Integrity verification failed.'));
+          const integrityIssues = [];
+          if (result.actual_size_bytes !== result.expected_size_bytes) {
+            integrityIssues.push(`size is ${result.actual_size_bytes.toLocaleString()} bytes; expected ${result.expected_size_bytes.toLocaleString()}`);
+          }
+          if (result.actual_sha256 !== result.expected_sha256) integrityIssues.push('SHA-256 checksum differs');
+          showStatus(
+            result.valid
+              ? `Raw-file integrity verified for ${file.original_filename}. SHA-256 matches.`
+              : `Integrity warning for ${file.original_filename}: ${integrityIssues.join('; ') || 'raw file differs from its import record'}.`,
+            result.valid ? 'success' : 'error',
+          );
+        } catch (error) {
+          showStatus(error.message, 'error');
+        } finally {
+          verifyButton.disabled = false;
+          verifyButton.textContent = 'Verify raw file';
+        }
+      });
+      spectrumMetadata.appendChild(verifyButton);
     }
 
     function renderMapping(mapping) {
@@ -963,7 +1387,12 @@
       }));
       context.putImageData(image, 0, 0);
       mappingPlot.hidden = false;
-      spectrumMessage.textContent = `${mapping.filename} · ${mapping.rows} × ${mapping.columns} map · range ${mapping.minimum.toLocaleString()} to ${mapping.maximum.toLocaleString()}`;
+      const sourceRows = mapping.source_rows || mapping.rows;
+      const sourceColumns = mapping.source_columns || mapping.columns;
+      const dimensions = sourceRows === mapping.rows && sourceColumns === mapping.columns
+        ? `${mapping.rows} x ${mapping.columns} map`
+        : `${sourceRows} x ${sourceColumns} source; ${mapping.rows} x ${mapping.columns} displayed`;
+      spectrumMessage.textContent = `${mapping.filename} - ${dimensions} - full range ${mapping.minimum.toLocaleString()} to ${mapping.maximum.toLocaleString()}`;
     }
 
     async function showImportedSpectrum(file, button) {
@@ -975,9 +1404,17 @@
       importedImage.removeAttribute('src');
       spectrumMessage.textContent = `Loading ${file.original_filename}...`;
       currentImportedFile = file;
+      referenceRequestSerial += 1;
+      referenceSpectrum = null;
+      referenceProvenance = null;
+      showSubtractedReference.checked = false;
+      showSubtractedReference.disabled = true;
       latestAnalysis = null;
+      activeHistoricalRun = null;
       renderImportedMetadata(file);
-      const isImage = (file.content_type || '').startsWith('image/') || /\.(jpe?g|png|gif|webp|bmp|tiff?|svg)$/i.test(file.original_filename);
+      // The server intentionally trusts a known image extension rather than
+      // the uploader-provided MIME type, which can be forged.
+      const isImage = /\.(jpe?g|png|gif|webp|bmp|tiff?|svg)$/i.test(file.original_filename);
       if (isImage) {
         currentSpectrum = null;
         spectrumToolbar.hidden = true;
@@ -990,7 +1427,7 @@
         };
         importedImage.onerror = () => {
           importedImage.hidden = true;
-          spectrumMessage.textContent = 'Image preview could not be loaded.';
+          spectrumMessage.textContent = 'Image preview could not be loaded. The file may be unsupported or its contents may not match its extension.';
         };
         importedImage.src = `/files/${encodeURIComponent(file.file_id)}/content`;
         importedImage.hidden = false;
@@ -1005,17 +1442,19 @@
         selectedFitPeaks = null;
         spectrumView = null;
         document.querySelectorAll('.spectrum-control-group').forEach((group) => { group.open = false; });
+        processAnalyzeGroup.open = true;
         spectrumToolbar.hidden = false;
         spectrumHelp.hidden = false;
         ramanAnalysis.hidden = true;
         analysisResults.replaceChildren();
+        await refreshReferenceForCurrentFile(false);
         renderSpectrum();
         spectrumPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
       } catch (error) {
         spectrumToolbar.hidden = true;
         spectrumHelp.hidden = true;
         ramanAnalysis.hidden = true;
-        if (/\.csv$/i.test(file.original_filename)) {
+        if (/\.(csv|tsv|dat|txt|asc|xy)$/i.test(file.original_filename)) {
           const mappingResponse = await fetch(`/files/${encodeURIComponent(file.file_id)}/mapping`);
           if (mappingResponse.ok) {
             renderMapping(await mappingResponse.json());
@@ -1037,7 +1476,7 @@
       const row = table.insertRow();
       const name = row.insertCell();
       name.textContent = label;
-      [peak?.position, peak?.fwhm, peak?.height, peak?.area, peak?.snr].forEach((value) => {
+      [peak?.position, peak?.position_uncertainty, peak?.fwhm, peak?.height, peak?.area, peak?.snr].forEach((value) => {
         const cell = row.insertCell();
         cell.textContent = value ?? '—';
       });
@@ -1045,13 +1484,24 @@
 
     async function runRamanAnalysis() {
       if (!currentImportedFile) return;
+      // Running a new analysis always uses the current live controls, never a
+      // replayed historical trace with a potentially different configuration.
+      if (activeHistoricalRun) {
+        activeHistoricalRun = null;
+        latestAnalysis = null;
+      }
       ramanAnalysis.hidden = false;
       analysisResults.textContent = 'Analyzing...';
-      const reference = analysisReference.value && analysisReference.value !== '__sio2_si_model__'
-        ? `?reference_file_id=${encodeURIComponent(analysisReference.value)}`
-        : '';
       try {
-        const response = await fetch(`/files/${encodeURIComponent(currentImportedFile.file_id)}/analysis${reference}`);
+        const response = await fetch(`/files/${encodeURIComponent(currentImportedFile.file_id)}/analysis`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            x: currentSpectrum.x,
+            y: processedIntensities(currentSpectrum),
+            processing_config: currentProcessingConfig(),
+          }),
+        });
         const analysis = await response.json();
         if (!response.ok) throw new Error(getApiErrorMessage(analysis, 'Analysis failed.'));
         latestAnalysis = analysis;
@@ -1059,9 +1509,12 @@
         const heading = document.createElement('h4');
         heading.textContent = 'Raman peak analysis';
         analysisResults.appendChild(heading);
+        const assignmentContext = document.createElement('p');
+        assignmentContext.textContent = `Mode assignment: ${analysis.mode_assignment_status}.`;
+        analysisResults.appendChild(assignmentContext);
         const table = document.createElement('table');
         const header = table.createTHead().insertRow();
-        ['Mode', 'Position', 'FWHM', 'Height', 'Area', 'SNR'].forEach((label) => {
+        ['Mode', 'Position', 'Position uncertainty', 'FWHM', 'Height', 'Area', 'SNR'].forEach((label) => {
           const cell = document.createElement('th');
           cell.textContent = label;
           header.appendChild(cell);
@@ -1073,8 +1526,21 @@
         selectedFitPeaks = null;
         renderSpectrum();
         const summary = document.createElement('p');
-        summary.textContent = `Peak separation: ${analysis.peak_separation ?? '—'} cm⁻¹ · Layer estimate: ${analysis.layer_estimate || '—'}`;
+        const separationUncertainty = analysis.peak_separation_uncertainty != null
+          ? ` ± ${analysis.peak_separation_uncertainty}` : '';
+        summary.textContent = `Peak separation: ${analysis.peak_separation ?? '—'}${separationUncertainty} cm⁻¹ · Layer estimate: ${analysis.layer_estimate || 'Not eligible'}`;
         analysisResults.appendChild(summary);
+        if (!analysis.interpretation?.eligible) {
+          const eligibility = document.createElement('p');
+          eligibility.className = 'analysis-warning';
+          eligibility.textContent = `Interpretation withheld: ${(analysis.interpretation?.reasons || []).join(' ')}`;
+          analysisResults.appendChild(eligibility);
+        }
+        if (analysis.uncertainty?.note) {
+          const uncertaintyNote = document.createElement('small');
+          uncertaintyNote.textContent = analysis.uncertainty.note;
+          analysisResults.appendChild(uncertaintyNote);
+        }
         const quality = document.createElement('p');
         quality.textContent = `QC ${analysis.quality.badge}: ${analysis.quality.point_count} points; median spacing ${analysis.quality.median_spacing}; intensity ${analysis.quality.intensity_min.toLocaleString()} to ${analysis.quality.intensity_max.toLocaleString()}.`;
         analysisResults.appendChild(quality);
@@ -1092,18 +1558,20 @@
           analysisResults.appendChild(warning);
         });
         if (currentImportedFile.sample_id) {
-          const repeatResponse = await fetch(`/samples/${encodeURIComponent(currentImportedFile.sample_id)}/raman-summary`);
+          const repeatResponse = await fetch(`/samples/${encodeURIComponent(currentImportedFile.sample_id)}/raman-summary?analysis_run_id=${encodeURIComponent(analysis.run_id)}`);
           if (repeatResponse.ok) {
             const repeatability = await repeatResponse.json();
             const repeat = document.createElement('p');
+            const excluded = repeatability.excluded_file_count
+              ? ` ${repeatability.excluded_file_count} file(s) were excluded because no analysis with the same processing configuration and app version exists.` : '';
             repeat.textContent = repeatability.spectrum_count > 1
-              ? `Repeatability: ${repeatability.spectrum_count} fitted spectra; mean separation ${repeatability.separation_mean} cm⁻¹; standard deviation ${repeatability.separation_stdev} cm⁻¹.`
-              : 'Repeatability: fewer than two fitted spectra are available for this sample.';
+              ? `Method-matched repeatability: ${repeatability.spectrum_count} fitted spectra; mean separation ${repeatability.separation_mean} cm⁻¹; standard deviation ${repeatability.separation_stdev} cm⁻¹.${excluded}`
+              : `Method-matched repeatability: fewer than two comparable fitted spectra are available for this sample.${excluded}`;
             analysisResults.appendChild(repeat);
           }
         }
         const provenance = document.createElement('small');
-        provenance.textContent = `Derived ${new Date(analysis.analyzed_at).toLocaleString()} from SHA-256 ${analysis.sha256}. Raw data was not modified.`;
+        provenance.textContent = `Analyzed the displayed processed trace ${new Date(analysis.analyzed_at).toLocaleString()} from raw SHA-256 ${analysis.sha256}. Raw data was not modified.`;
         analysisResults.appendChild(provenance);
       } catch (error) {
         analysisResults.textContent = error.message;
@@ -1112,15 +1580,126 @@
 
     document.querySelector('#run-raman-analysis').addEventListener('click', runRamanAnalysis);
 
-    function currentAnalysisConfig() {
+    async function replayAnalysisRun(run, button) {
+      if (!currentImportedFile || run.file_id !== currentImportedFile.file_id) return;
+      const originalLabel = button.textContent;
+      button.disabled = true;
+      button.textContent = 'Verifying...';
+      try {
+        const response = await fetch(`/analysis-runs/${encodeURIComponent(run.run_id)}/trace`);
+        const trace = await response.json();
+        if (!response.ok) throw new Error(getApiErrorMessage(trace, 'Could not replay this analysis run.'));
+        activeHistoricalRun = { runId: run.run_id, fileId: run.file_id, trace };
+        latestAnalysis = run.result;
+        selectedFitPeaks = null;
+        renderSpectrum(); // Preserve the current zoom/pan window.
+        spectrumMessage.textContent = `Verified historical run from ${new Date(run.created_at).toLocaleString()} - processing controls are not reapplied.`;
+        showStatus('Loaded a checksum-verified historical processed trace. Raw data was not modified.', 'success');
+        button.textContent = 'Replaying';
+      } catch (error) {
+        button.disabled = false;
+        button.textContent = originalLabel;
+        showStatus(error.message, 'error');
+      }
+    }
+
+    function stopHistoricalReplay() {
+      if (!activeHistoricalRun) return;
+      activeHistoricalRun = null;
+      latestAnalysis = null;
+      selectedFitPeaks = null;
+      renderSpectrum();
+      spectrumMessage.textContent = `${currentSpectrum.filename} - returned to current processing controls.`;
+      analysisResults.querySelectorAll('button[data-analysis-replay]').forEach((button) => {
+        button.textContent = 'Replay';
+        button.disabled = button.dataset.traceVerified !== 'true';
+      });
+    }
+
+    document.querySelector('#view-analysis-history').addEventListener('click', async () => {
+      if (!currentImportedFile) {
+        showStatus('Select an imported spectrum first.', 'error');
+        return;
+      }
+      ramanAnalysis.hidden = false;
+      analysisResults.textContent = 'Loading analysis history…';
+      try {
+        const response = await fetch(`/files/${encodeURIComponent(currentImportedFile.file_id)}/analysis-runs`);
+        const runs = await response.json();
+        if (!response.ok) throw new Error(getApiErrorMessage(runs, 'Could not load analysis history.'));
+        analysisResults.replaceChildren();
+        const heading = document.createElement('h4');
+        heading.textContent = `Analysis history (${runs.length})`;
+        analysisResults.appendChild(heading);
+        if (activeHistoricalRun) {
+          const stopReplay = document.createElement('button');
+          stopReplay.type = 'button';
+          stopReplay.textContent = 'Return to current processing';
+          stopReplay.addEventListener('click', stopHistoricalReplay);
+          analysisResults.appendChild(stopReplay);
+        }
+        if (!runs.length) {
+          const empty = document.createElement('p');
+          empty.textContent = 'No saved analysis runs exist for this file.';
+          analysisResults.appendChild(empty);
+          return;
+        }
+        const table = document.createElement('table');
+        const header = table.createTHead().insertRow();
+        ['Time', 'Processing', 'Raw SHA-256', 'Derived SHA-256', 'Trace', 'Version', 'Action'].forEach((label) => {
+          const cell = document.createElement('th'); cell.textContent = label; header.appendChild(cell);
+        });
+        const body = table.createTBody();
+        runs.forEach((run) => {
+          const row = body.insertRow();
+          const config = Object.entries(run.processing_config || {})
+            .filter(([, value]) => value !== false && value !== '' && value !== 'none')
+            .map(([key, value]) => `${key.replace(/_/g, ' ')}=${value}`)
+            .join(', ') || 'No processing';
+          [new Date(run.created_at).toLocaleString(), config, `${run.raw_sha256.slice(0, 12)}…`, `${run.derived_sha256.slice(0, 12)}…`, run.derived_trace_verification, run.app_version]
+            .forEach((value) => { const cell = row.insertCell(); cell.textContent = value; });
+          const actionCell = row.insertCell();
+          const replayButton = document.createElement('button');
+          replayButton.type = 'button';
+          replayButton.className = 'analysis-history-action';
+          replayButton.dataset.analysisReplay = run.run_id;
+          replayButton.dataset.traceVerified = String(run.derived_trace_verification === 'verified');
+          replayButton.textContent = activeHistoricalRun?.runId === run.run_id ? 'Replaying' : 'Replay';
+          replayButton.disabled = run.derived_trace_verification !== 'verified' || activeHistoricalRun?.runId === run.run_id;
+          replayButton.title = run.derived_trace_verification === 'verified'
+            ? 'Load the checksum-verified processed trace without changing raw data'
+            : 'This legacy run has no retained processed trace';
+          replayButton.addEventListener('click', () => replayAnalysisRun(run, replayButton));
+          actionCell.appendChild(replayButton);
+        });
+        analysisResults.appendChild(table);
+      } catch (error) {
+        analysisResults.textContent = error.message;
+      }
+    });
+
+    function currentProcessingConfig() {
       return {
-        crop_min: cropMin.value, crop_max: cropMax.value,
+        pipeline_order: 'baseline > cosmic_rays > rayleigh > substrate_reference > smoothing > normalization',
         remove_cosmic_rays: removeCosmicRays.checked,
+        subtract_rayleigh_line: subtractRayleighLine.checked,
+        rayleigh_cutoff: subtractRayleighLine.checked ? rayleighCutoff.value : null,
+        subtract_baseline: true,
         baseline_method: baselineMethod.value,
         smoothing_method: smoothingMethod.value,
-        smoothing_window: smoothingWindow.value,
+        smoothing_window: smoothingMethod.value !== 'none' ? String(effectiveSmoothingWindow()) : null,
         normalization_method: normalizationMethod.value,
         subtract_reference: subtractReference.checked,
+        reference_selection: subtractReference.checked ? analysisReference.value || null : null,
+        reference_provenance: subtractReference.checked ? referenceProvenance : null,
+      };
+    }
+
+    function currentAnalysisConfig() {
+      return {
+        ...currentProcessingConfig(),
+        crop_min: cropMin.value, crop_max: cropMax.value,
+        show_subtracted_reference: showSubtractedReference.checked,
         peak_model: peakModel.value,
         show_fit_components: showFitComponents.checked,
         show_fit_residual: showFitResidual.checked,
@@ -1128,16 +1707,27 @@
       };
     }
 
-    function applyAnalysisConfig(config) {
+    async function applyAnalysisConfig(config) {
       cropMin.value = config.crop_min || '';
       cropMax.value = config.crop_max || '';
       removeCosmicRays.checked = Boolean(config.remove_cosmic_rays);
-      baselineMethod.value = config.baseline_method || 'none';
+      subtractRayleighLine.checked = Boolean(config.subtract_rayleigh_line);
+      rayleighCutoff.value = config.rayleigh_cutoff || '40';
+      subtractBaseline.checked = true;
+      baselineMethod.value = config.baseline_method && config.baseline_method !== 'none'
+        ? config.baseline_method : 'rubberband';
       smoothingMethod.value = config.smoothing_method || 'none';
       smoothingWindow.value = config.smoothing_window || '1';
-      smoothingValue.value = smoothingWindow.value;
+      syncSmoothingWindow();
       normalizationMethod.value = config.normalization_method || 'none';
-      subtractReference.checked = Boolean(config.subtract_reference);
+      const savedReference = config.reference_selection || '';
+      const referenceAvailable = !savedReference
+        || Array.from(analysisReference.options).some((option) => option.value === savedReference);
+      analysisReference.value = referenceAvailable ? savedReference : '';
+      if (currentSpectrum) await refreshReferenceForCurrentFile(false);
+      subtractReference.checked = Boolean(config.subtract_reference)
+        && Boolean(savedReference) && Boolean(referenceSpectrum);
+      showSubtractedReference.checked = Boolean(config.show_subtracted_reference) && !showSubtractedReference.disabled;
       peakModel.value = config.peak_model || 'Lorentzian';
       showFitComponents.checked = Boolean(config.show_fit_components);
       showFitResidual.checked = Boolean(config.show_fit_residual);
@@ -1147,45 +1737,74 @@
     }
 
     async function fetchAnalysisRecipes() {
-      const response = await fetch('/analysis/recipes');
-      if (!response.ok) return;
-      const recipes = await response.json();
-      analysisRecipe.replaceChildren(new Option('Load recipe...', ''));
-      recipes.forEach((recipe) => {
-        const option = new Option(recipe.name, recipe.recipe_id);
-        option.dataset.config = JSON.stringify(recipe.config);
-        analysisRecipe.add(option);
-      });
+      try {
+        const response = await fetch('/analysis/recipes');
+        const recipes = await response.json();
+        if (!response.ok) throw new Error(getApiErrorMessage(recipes, 'Could not load analysis recipes.'));
+        analysisRecipe.replaceChildren(new Option('Load recipe...', ''));
+        recipes.forEach((recipe) => {
+          const option = new Option(recipe.name, recipe.recipe_id);
+          option.dataset.config = JSON.stringify(recipe.config);
+          analysisRecipe.add(option);
+        });
+      } catch (error) {
+        showStatus(error.message, 'error');
+      }
     }
 
-    analysisRecipe.addEventListener('change', () => {
+    analysisRecipe.addEventListener('change', async () => {
       const option = analysisRecipe.selectedOptions[0];
-      if (option?.dataset.config) applyAnalysisConfig(JSON.parse(option.dataset.config));
+      if (option?.dataset.config) await applyAnalysisConfig(JSON.parse(option.dataset.config));
     });
     document.querySelector('#save-analysis-recipe').addEventListener('click', async () => {
       const name = prompt('Analysis recipe name');
       if (!name) return;
-      const response = await fetch('/analysis/recipes', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, config: currentAnalysisConfig() }),
-      });
-      if (response.ok) await fetchAnalysisRecipes();
+      try {
+        const response = await fetch('/analysis/recipes', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, config: currentAnalysisConfig() }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(getApiErrorMessage(result, 'Could not save the analysis recipe.'));
+        await fetchAnalysisRecipes();
+        showStatus(`Saved analysis recipe “${result.name}”.`, 'success');
+      } catch (error) {
+        showStatus(error.message, 'error');
+      }
     });
     document.querySelector('#export-analysis-json').addEventListener('click', () => {
       if (!currentImportedFile) return;
-      const payload = { source: currentImportedFile, processing: currentAnalysisConfig(), analysis: latestAnalysis };
+      const payload = {
+        source: currentImportedFile,
+        processing: latestAnalysis?.processing_config || currentProcessingConfig(),
+        viewer_recipe: currentAnalysisConfig(),
+        analysis: latestAnalysis,
+      };
       downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }), `${currentImportedFile.original_filename}.analysis.json`);
     });
     document.querySelector('#compare-sample-spectra').addEventListener('click', async () => {
       if (!currentImportedFile?.sample_id) return;
       const ids = allImportedFiles.filter((file) => file.sample_id === currentImportedFile.sample_id && /\.(txt|csv|log)$/i.test(file.original_filename)).map((file) => file.file_id).slice(0, 20);
       if (ids.length < 2) { analysisResults.textContent = 'At least two spectra are required for comparison.'; ramanAnalysis.hidden = false; return; }
-      const response = await fetch('/analysis/compare', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file_ids: ids }) });
-      const result = await response.json();
       ramanAnalysis.hidden = false;
-      analysisResults.replaceChildren();
-      const heading = document.createElement('h4'); heading.textContent = 'Sample comparison'; analysisResults.appendChild(heading);
-      result.spectra.forEach((item) => { const line = document.createElement('p'); line.textContent = `${item.filename}: correlation ${item.correlation_to_first ?? '—'}, separation ${item.peak_separation ?? '—'} cm⁻¹`; analysisResults.appendChild(line); });
+      analysisResults.textContent = 'Comparing spectra on their shared Raman-shift coordinates…';
+      try {
+        const response = await fetch('/analysis/compare', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file_ids: ids }) });
+        const result = await response.json();
+        if (!response.ok) throw new Error(getApiErrorMessage(result, 'Spectrum comparison failed.'));
+        analysisResults.replaceChildren();
+        const heading = document.createElement('h4'); heading.textContent = 'Sample comparison'; analysisResults.appendChild(heading);
+        result.spectra.forEach((item) => {
+          const line = document.createElement('p');
+          const overlap = item.overlap_range
+            ? `; ${item.overlap_point_count} aligned points from ${item.overlap_range[0]} to ${item.overlap_range[1]}` : '';
+          const warning = item.comparison_warning ? ` Warning: ${item.comparison_warning}` : '';
+          line.textContent = `${item.filename}: correlation ${item.correlation_to_first ?? '—'}, separation ${item.peak_separation ?? '—'} cm⁻¹${overlap}.${warning}`;
+          analysisResults.appendChild(line);
+        });
+      } catch (error) {
+        analysisResults.textContent = error.message;
+      }
     });
 
     function downloadBlob(blob, filename) {
@@ -1216,6 +1835,8 @@
     }
 
     document.querySelector('#reset-spectrum-view').addEventListener('click', resetSpectrumView);
+    [showPlotDetails, plotDetailsMode].forEach((control) => control.addEventListener('change', () => renderSpectrum()));
+    plotDetailsCorner.addEventListener('change', () => { customPlotDetailsPosition = null; renderSpectrum(); });
     document.querySelector('#export-spectrum-csv').addEventListener('click', exportSpectrumCsv);
     document.querySelector('#export-spectrum-svg').addEventListener('click', () => {
       if (!currentSpectrum) return;
@@ -1243,34 +1864,160 @@
     // Processing redraws must keep the user's zoom/pan viewport so methods can
     // be compared over exactly the same region. Cropping and the explicit reset
     // button are the only controls here that intentionally establish a new view.
+    function syncSmoothingWindow() {
+      if (smoothingMethod.value === 'savitzky' && Number(smoothingWindow.value) < 5) {
+        smoothingWindow.value = '5';
+      }
+      smoothingValue.value = smoothingWindow.value;
+    }
+    function resumeCurrentProcessingForControlChange() {
+      if (!activeHistoricalRun) return;
+      activeHistoricalRun = null;
+      latestAnalysis = null;
+      selectedFitPeaks = null;
+      spectrumMessage.textContent = `${currentSpectrum.filename} - historical replay ended because processing controls changed.`;
+    }
     [cropMin, cropMax].forEach((control) => control.addEventListener('change', resetSpectrumView));
+    smoothingMethod.addEventListener('change', syncSmoothingWindow);
     [removeCosmicRays, detectCosmicRays, subtractRayleighLine, rayleighCutoff,
       baselineMethod, showDetectedBaseline, subtractBaseline,
-      smoothingMethod, normalizationMethod, subtractReference]
-      .forEach((control) => control.addEventListener('change', () => renderSpectrum()));
+      smoothingMethod, normalizationMethod, subtractReference, showSubtractedReference]
+      .forEach((control) => control.addEventListener('change', () => {
+        resumeCurrentProcessingForControlChange();
+        renderSpectrum();
+      }));
     showPeaks.addEventListener('change', () => renderSpectrum());
-    smoothingWindow.addEventListener('input', () => { smoothingValue.value = smoothingWindow.value; renderSpectrum(); });
+    smoothingWindow.addEventListener('input', () => {
+      smoothingValue.value = smoothingWindow.value;
+      resumeCurrentProcessingForControlChange();
+      renderSpectrum();
+    });
     peakSensitivity.addEventListener('input', () => { peakSensitivityValue.value = `${peakSensitivity.value}%`; renderSpectrum(); });
     [peakModel, showFitComponents, showCumulativeFit, showFitResidual].forEach((control) => control.addEventListener('change', () => renderSpectrum()));
-    analysisReference.addEventListener('change', async () => {
+    async function submitResidualDecision(action) {
+      if (!activeResidualPeak || !currentImportedFile) return;
+      const response = await fetch(`/files/${encodeURIComponent(currentImportedFile.file_id)}/substrate-residual-feedback`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action, center: activeResidualPeak.position, half_width: activeResidualPeak.half_width,
+          command: residualCommand.value,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(getApiErrorMessage(result, 'Could not save the residual-peak decision.'));
+      closeAccessibleModal(residualReviewModal);
+      if (action === 'command') {
+        try { await navigator.clipboard.writeText(result.prompt); } catch (_error) { window.prompt('Copy this prompt into VS Code/Codex Chat:', result.prompt); }
+        showStatus('The Codex prompt was copied. Paste it into VS Code/Codex Chat.', 'success');
+        window.open('vscode://', '_blank');
+      } else if (action === 'remove') {
+        const modelResponse = await fetch(`/files/${encodeURIComponent(currentImportedFile.file_id)}/substrate-model`);
+        if (modelResponse.ok) {
+          const updatedModel = await modelResponse.json();
+          referenceSpectrum = {
+            x: updatedModel.x, y: updatedModel.substrate_y,
+            correctedY: updatedModel.corrected_y, baselineCorrected: true,
+          };
+          renderSpectrum();
+          showStatus('Residual peak removed. This decision will be reused for future matching material systems.', 'success');
+        }
+      } else {
+        showStatus('Residual peak kept for this spectrum.', 'success');
+      }
+      activeResidualPeak = null;
+    }
+
+    function reviewResidualPeaks(model) {
+      const peak = model.residual_peaks?.[0];
+      if (!peak) return;
+      activeResidualPeak = peak;
+      residualCommand.value = '';
+      residualReviewMessage.textContent = `A residual peak remains near ${peak.position.toFixed(2)} cm⁻¹ (prominence ${peak.prominence.toLocaleString()}). What should the program do?`;
+      openAccessibleModal(residualReviewModal, document.querySelector('#keep-residual-peak'));
+    }
+
+    document.querySelector('#keep-residual-peak').addEventListener('click', () => submitResidualDecision('keep').catch((error) => showStatus(error.message, 'error')));
+    document.querySelector('#remove-residual-peak').addEventListener('click', () => submitResidualDecision('remove').catch((error) => showStatus(error.message, 'error')));
+    document.querySelector('#command-residual-peak').addEventListener('click', () => submitResidualDecision('command').catch((error) => showStatus(error.message, 'error')));
+
+    async function refreshReferenceForCurrentFile(announce = true) {
+      const requestSerial = ++referenceRequestSerial;
+      const requestedFileId = currentImportedFile?.file_id;
       referenceSpectrum = null;
-      if (analysisReference.value === '__sio2_si_model__' && currentImportedFile) {
-        const response = await fetch(`/files/${encodeURIComponent(currentImportedFile.file_id)}/substrate-model`);
+      referenceProvenance = null;
+      showSubtractedReference.checked = false;
+      showSubtractedReference.disabled = true;
+      if (analysisReference.value === '__sio2_si_model__' && requestedFileId) {
+        const response = await fetch(`/files/${encodeURIComponent(requestedFileId)}/substrate-model`);
+        if (requestSerial !== referenceRequestSerial || requestedFileId !== currentImportedFile?.file_id) return;
         if (response.ok) {
           const model = await response.json();
-          referenceSpectrum = { y: model.substrate_y };
+          referenceSpectrum = {
+            x: model.x,
+            y: model.substrate_y,
+            correctedY: model.corrected_y,
+            baselineCorrected: true,
+          };
+          referenceProvenance = JSON.stringify({
+            kind: 'target-adaptive SiO2/Si model',
+            model_version: model.model_version,
+            reference_ensemble: model.reference_ensemble,
+            processing_pipeline: model.processing_pipeline,
+            reference_sources: model.reference_sources,
+            excluded_references: model.excluded_references,
+            substrate_only_validation: model.substrate_only_validation,
+          });
+          showSubtractedReference.disabled = false;
           subtractReference.checked = true;
           const protectedCount = model.protected_regions?.length || 0;
           const protection = protectedCount ? ` ${protectedCount} assigned MoS₂ peak regions were protected.` : '';
-          showStatus(`Target-specific SiO₂/Si substrate detected with ${Math.round(model.confidence * 100)}% confidence using ${model.reference_files.length} learned references.${protection}`, 'success');
-        } else {
-          showStatus('A learned SiO₂/Si model could not be built for this spectrum.', 'error');
+          const noise = model.noise ? ` Substrate noise ${model.noise.substrate.toLocaleString()} (target ${model.noise.target.toLocaleString()}).` : '';
+          const alignment = model.silicon_peak_match?.target_position
+            ? ` References aligned to the target Si peak at ${model.silicon_peak_match.target_position.toFixed(2)} cm⁻¹.` : '';
+          const isolation = model.material_isolation?.applied
+            ? ' The corrected trace is a fitted, noise-free MoS₂-only reconstruction—not a raw residual.' : '';
+          const substrateOnly = model.substrate_only_validation?.applied
+            ? ` Confirmed substrate-only identity enforced a zero residual after leave-one-out evaluation (pre-enforcement relative RMS ${model.substrate_only_validation.pre_enforcement_relative_rms.toLocaleString()}).` : '';
+          const excluded = model.excluded_references?.length
+            ? ` ${model.excluded_references.length} reference(s) were excluded; inspect provenance for coverage or unit reasons.` : '';
+          const ensemble = model.reference_ensemble
+            ? ` Ensemble ${model.reference_ensemble.ensemble_id.slice(0, 12)} learned ${model.reference_ensemble.learned_peak_families.length} stable peak families with absolute and Si-relative intensity variability.` : '';
+          if (announce) showStatus(`Baseline-first target-specific SiO₂/Si substrate modeled with ${Math.round(model.confidence * 100)}% confidence using ${model.reference_files.length} learned references.${ensemble}${excluded}${alignment}${protection}${noise}${isolation}${substrateOnly}`, 'success');
+          reviewResidualPeaks(model);
+        } else if (announce) {
+          const problem = await response.json().catch(() => null);
+          showStatus(getApiErrorMessage(problem, 'A learned SiO₂/Si model could not be built for this spectrum.'), 'error');
         }
       } else if (analysisReference.value) {
         const response = await fetch(`/files/${encodeURIComponent(analysisReference.value)}/spectrum`);
-        if (response.ok) referenceSpectrum = await response.json();
+        if (requestSerial !== referenceRequestSerial || requestedFileId !== currentImportedFile?.file_id) return;
+        if (response.ok) {
+          referenceSpectrum = await response.json();
+          const sourceRecord = allImportedFiles.find((file) => file.file_id === analysisReference.value);
+          referenceProvenance = JSON.stringify({
+            kind: 'imported reference spectrum',
+            file_id: analysisReference.value,
+            sha256: sourceRecord?.sha256 || null,
+          });
+          showSubtractedReference.disabled = !interpolatedReferenceValues(referenceSpectrum, currentSpectrum?.x || []);
+          if (announce && showSubtractedReference.disabled) {
+            showStatus('The selected reference does not fully cover this spectrum on a valid Raman-shift grid.', 'error');
+          }
+        }
       }
       if (subtractReference.checked) renderSpectrum();
+    }
+
+    analysisReference.addEventListener('change', async () => {
+      resumeCurrentProcessingForControlChange();
+      try {
+        await refreshReferenceForCurrentFile(true);
+      } catch (error) {
+        referenceSpectrum = null;
+        showSubtractedReference.disabled = true;
+        showStatus(`Reference loading failed: ${error.message}`, 'error');
+        renderSpectrum();
+      }
     });
 
     const boxZoomMode = document.querySelector('#box-zoom-mode');
@@ -1319,11 +2066,13 @@
       }
       if (reachedFullView) {
         const fullY = processedIntensities(currentSpectrum);
+        const fullRangeY = (subtractReference.checked && referenceSpectrum) || activeHistoricalRun
+          ? [...fullY, ...currentSpectrum.y] : fullY;
+        const paddedY = paddedYRange(fullRangeY);
         spectrumView = {
           xMin: fullMin,
           xMax: fullMax,
-          yMin: Math.min(...fullY),
-          yMax: Math.max(...fullY),
+          ...paddedY,
         };
       } else {
         spectrumView = { ...spectrumView, xMin: nextMin, xMax: nextMax };
@@ -1351,6 +2100,7 @@
 
     spectrumPlot.addEventListener('pointerdown', (event) => {
       if (!currentSpectrum || !plotGeometry) return;
+      if (event.target.closest?.('[data-plot-details]')) return;
       if (event.button !== 0 && event.button !== 1) return;
       if (event.button === 1) event.preventDefault();
       spectrumPlot.setPointerCapture(event.pointerId);
@@ -1810,6 +2560,7 @@
       try {
         const res = await fetch('/presets');
         const presets = await res.json();
+        if (!res.ok) throw new Error(getApiErrorMessage(presets, 'Could not load presets.'));
         while (presetSelect.options.length > 1) presetSelect.remove(1);
         presets.forEach(p => {
           const opt = document.createElement('option');
@@ -1818,7 +2569,9 @@
           opt.dataset.config = p.config;
           presetSelect.appendChild(opt);
         });
-      } catch (err) {}
+      } catch (error) {
+        showStatus(error.message, 'error');
+      }
     }
 
     presetSelect.addEventListener('change', (e) => {
@@ -1845,10 +2598,15 @@
         accumulations: (form.elements['accumulations']?.value || ''),
       };
       const payload = { name, config };
-      const res = await fetch('/presets', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-      if (!res.ok) { alert('Failed to save preset'); return; }
-      await fetchPresets();
-      alert('Preset saved');
+      try {
+        const res = await fetch('/presets', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+        const result = await res.json();
+        if (!res.ok) throw new Error(getApiErrorMessage(result, 'Could not save the preset.'));
+        await fetchPresets();
+        showStatus(`Saved preset “${result.name}”.`, 'success');
+      } catch (error) {
+        showStatus(error.message, 'error');
+      }
     });
 
     // legacy select removed; typeahead handles new-sample creation
@@ -2158,8 +2916,7 @@
         document.querySelector(`#edit-${fieldName.replaceAll('_', '-')}`).value = details[fieldName] || '';
       });
       editMetadataError.textContent = '';
-      editMetadataModal.hidden = false;
-      document.querySelector('#edit-technique').focus();
+      openAccessibleModal(editMetadataModal, document.querySelector('#edit-technique'));
       try {
         const response = await fetch(`/files/${encodeURIComponent(file.file_id)}/metadata-suggestions`);
         if (!response.ok || editingImportedFile?.file_id !== file.file_id) return;
@@ -2200,7 +2957,7 @@
     }
 
     document.querySelector('#cancel-metadata-edit').addEventListener('click', () => {
-      editMetadataModal.hidden = true;
+      closeAccessibleModal(editMetadataModal);
       editingImportedFile = null;
     });
 
@@ -2230,7 +2987,7 @@
         return;
       }
       showStatus(`Updated metadata for ${editingImportedFile.original_filename}.`, 'success');
-      editMetadataModal.hidden = true;
+      closeAccessibleModal(editMetadataModal);
       editingImportedFile = null;
       await refreshFiles();
     });
@@ -2303,17 +3060,27 @@
         return;
       }
       const entries = getImportEntries();
-      let html = filesToImport.length === 1
-        ? `<p><strong>File:</strong> ${filesToImport[0].name} (${filesToImport[0].size.toLocaleString()} bytes)</p>`
-        : `<p><strong>Folder import:</strong> ${filesToImport.length} selected files</p>`;
-      Object.entries(entries).forEach(([k,v]) => {
-        html += `<div><strong>${k.replace(/_/g,' ')}:</strong> ${v}</div>`;
+      reviewContent.replaceChildren();
+      const reviewSummary = document.createElement('p');
+      const reviewSummaryLabel = document.createElement('strong');
+      reviewSummaryLabel.textContent = filesToImport.length === 1 ? 'File: ' : 'Folder import: ';
+      reviewSummary.append(reviewSummaryLabel, document.createTextNode(
+        filesToImport.length === 1
+          ? `${filesToImport[0].name} (${filesToImport[0].size.toLocaleString()} bytes)`
+          : `${filesToImport.length} selected files`,
+      ));
+      reviewContent.appendChild(reviewSummary);
+      Object.entries(entries).forEach(([key, value]) => {
+        const row = document.createElement('div');
+        const label = document.createElement('strong');
+        label.textContent = `${key.replace(/_/g, ' ')}: `;
+        row.append(label, document.createTextNode(String(value ?? '')));
+        reviewContent.appendChild(row);
       });
-      reviewContent.innerHTML = html;
-      reviewModal.style.display = 'flex';
+      openAccessibleModal(reviewModal, confirmImport);
       // confirm/cancel handlers
       const doUpload = async () => {
-        reviewModal.style.display = 'none';
+        closeAccessibleModal(reviewModal);
         submitButton.disabled = true;
         showStatus('Importing...');
         try {
@@ -2405,7 +3172,7 @@
       };
 
       confirmImport.onclick = doUpload;
-      cancelImport.onclick = () => { reviewModal.style.display = 'none'; };
+      cancelImport.onclick = () => closeAccessibleModal(reviewModal);
     });
 
     // fetch sample list then refresh imports
